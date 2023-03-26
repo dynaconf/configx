@@ -1,0 +1,25 @@
+[project]
+name = "dynaconf-from-scratch"
+description = "Package to try out some system design and dsa ideias."
+version = "0.1.0"
+authors = [
+    { name = "Pedro Pessoa", email = "pedropsb95@gmail.com" }
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    # "tox",
+    # "pre-commit",
+    # "bump2version"
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+# testpaths = [
+#     "tests",
+#     "integration",
