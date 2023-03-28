@@ -11,35 +11,29 @@ from lib.core.tree import Bucket as B
 from lib.core.tree import Node as N
 from lib.core.tree import Setting as S
 from lib.core.tree import Tree as T
+from lib.shared.types import TreePath
 from lib.shared.utils import normalize_compound_type
 
 
 def main():
+    nodeA = N("foo")
+    nodeB = N("bar")
+    nodeC = N("spam", S("spam", "eggs"))
+    nodeD = N("nested", parent=nodeA)
+    nodeA.children.append(nodeD)
+
+    b = B([nodeA, nodeB, nodeC, nodeD])
+    b.inspect(verbose=True, relative_path=False)
+
+def test_create_and_get_nodes():
     t = T()
     t.create_node("node", "this_is_a_string")
     t.create_node("foo", 1)
     t.create_node("compound", ["foo", "bar", {"level": 4}])
     t.show()
-
-
-@pytest.mark.skip
-def test_full_path():
-    ...
-    # a = N(S("foo", ""))
-    # b = N("bar", a)
-    # c = N("spam", b)
-    # d = N("eggs", c)
-    # assert d.full_path() == "/foo/bar/spam/eggs"
-
-
-def test_setting():
-    s = S("foo", 123)
-    s = S("foo", "bar")
-
-
-def test_create_node():
-    t = T()
-    t.create_node("node", "this_is_a_string")
+    a = t.get_nodes_by_path(("foo",))
+    print(a)
+    # t.show()
 
 
 def test_normalize_compound_type():

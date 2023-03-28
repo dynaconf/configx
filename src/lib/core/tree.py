@@ -23,36 +23,72 @@ class Node:
     - Inner nodes: Responsible for holding shared path/key information
     about a Settings
     - Leaves: Responsible for holding a Setting object
+
+    TODO: consider creating different classes for them
     """
 
     def __init__(
         self,
         name: str,
-        element: Setting | None,
+        element: Setting | None = None,
         children: Children | None = None,
         parent: Node | None = None,
     ):
         self.name = name
         self.parent: Node | None = parent
         self.element = element
-        self.children = Bucket(children)
+        self.children = Bucket(children) if children else []
         self.depth = 0
 
-    def is_leaf(self, node: Node):
-        return node.children is None
+    def is_leaf(self):
+        return not self.children and self.element
 
-    def is_root(self, node: Node):
-        return node.parent is None
+    def is_root(self):
+        return self.parent is None
 
     def full_path(self):
         path = self.parent.full_path() if self.parent else ()
         return TreePath((*path, self.name))
 
+    def relative_id_str(self):
+        """
+        Return relative id for node:
+        - PathNode: ".name"
+        - LeafNode: ".name::env::/abs/path/to/source"
+        """
+        if not self.is_leaf():
+            return f".{self.name}"
+        assert self.element
+        rel_id_format = ".{}::{}::{}"
+        return rel_id_format.format(self.name, self.element.env, self.element.source)
+
+    def aboslute_id_str(self):
+        """
+        Return relative id for node:
+        - PathNode: "full.path.to.name"
+        - LeafNode: "full.path.to.name::env::/abs/path/to/source"
+        """
+        full_dotted_path = ".".join(self.full_path())
+        if not self.is_leaf():
+            return full_dotted_path
+        assert self.element
+        rel_id_format = "{}::{}::{}"
+        return rel_id_format.format(
+            full_dotted_path, self.element.env, self.element.source
+        )
+
     def __repr__(self):
         parent_name = self.parent.name if self.parent else ""
+        node_type = "LeafNode" if self.is_leaf() else "PathNode"
         return (
-            f"""(name="{self.name}", parent="{parent_name}", element={self.element})"""
+            f"""{node_type}(name="{self.name}", parent="{parent_name}","""
+            f""" element={self.element}, children_len={len(self.children)})"""
         )
+
+    def __getitem__(self, key):
+        """
+        Implement node['name'] access to children
+        """
 
     def __len__(self):
         return len(self.children)
@@ -69,10 +105,33 @@ class Setting:
     source: DataSource = "programmatic"
     env: Environment = "default"
     evaluated: SimpleTypes | None = None
+    path: TreePath | None = None
 
     @property
     def type(self):
+        """
+        Should be calculated from evaluated value
+        """
         return "foo"
+
+
+@dataclass
+class SettingPath:
+    """
+    Data Structure to SettingPath data
+
+    TODO may this class could be the type itself
+    """
+
+    path: TreePath
+
+    @property
+    def name(self):
+        return self.path[-1]
+
+    @property
+    def type(self):
+        return TreePath
 
 
 # class Setting:
@@ -97,27 +156,44 @@ class Bucket:
     Node and Leaf objects.
     """
 
-    def __init__(self, initial_nodes: Children | None = None):
-        # self.parent = parent
-        self.__container = PositionalDict()
+    def __init__(
+        self, initial_nodes: Children | None = None, owner: Node | None = None
+    ):
+        # initializes with optional initial list of nodes
+        initial_data = []
+        if initial_nodes:
+            initial_data = [(n, n) for n in initial_nodes]
+        self.__container = PositionalDict(initial_data)
+
+        # Optionally provide the owner Node, for convenience
+        self.owner = owner
 
     # Crud
 
     def append(self, item: Node):
         """
-        Append item at the end
+        Append item to the last position
         """
         self.__container[item] = item
 
-    def get_by_name(self, name: str):
+    def get_by_props(
+        self,
+        name: str,
+        env: Environment | None = None,
+        source: DataSource | None = None,
+    ) -> list[Node]:
         """
-        Get item by name
-        """
+        Get node by properties
 
-    def get_by_index(self, index: int):
+        TODO implement env and data_source filters
+        """
+        return [n for n in self if n.name == name]
+
+    def get_by_index(self, index: int) -> Node:
         """
         Get item by name
         """
+        return self.__container[index]
 
     # Iterators
 
@@ -139,6 +215,29 @@ class Bucket:
         """
         return (n for n in self if not n.is_leaf())
 
+    def inspect(self, verbose=0, relative_path=True):
+        """
+        Debugging function
+        TODO see lib to pretty print these stuff
+        """
+        print("=" * 10)
+        print(f"parent: {self.owner}")
+        print(f"path: {self.owner.aboslute_id_str() if self.owner else None}")
+        print(f"length: {self.__len__()}")
+        print("=" * 10)
+        sep = " " * 1
+
+        for i, n in enumerate(self):
+            if n.is_leaf():
+                # extra_info = f" {sep}(raw_data='{n.element.raw_data}')"
+                extra_info = f"{sep}('{n.element.raw_data}')"
+            else:
+                # extra_info = f" {sep}(children_len={len(n.children)})"
+                extra_info = f"{sep}({len(n.children)})"
+            show = extra_info if verbose else ""
+            path = n.relative_id_str() if relative_path else n.aboslute_id_str()
+            print(f"[{i}] {path}{show}")
+
     # Dunder
 
     def __len__(self):
@@ -155,6 +254,9 @@ class Bucket:
         del B[i]
         del B[BucketItem]
         """
+
+    def __getitem__(self, key):
+        return self.__container.__getitem__(key)
 
 
 class PositionalDict(OrderedDict):
@@ -239,6 +341,7 @@ class Tree:
             new_node = Node(name=name, parent=parent, element=new_setting)
             parent.children.append(new_node)
             return new_node
+
         if isinstance(element, CompoundTypes):
             new_node = Node(name=name, parent=parent, element=None)
             elements = normalize_compound_type(element)
@@ -250,12 +353,20 @@ class Tree:
 
         raise TypeError("Param @element should be of type Setting or None")
 
-    def get_node_by_path(self, path: TreePath) -> Node:
+    def get_nodes_by_path(self, path: TreePath) -> list[Node]:
         """
-        Get node by it's TreePath.
-        Eg: ("path", "to", "setting")
+        Get nodes by it's @path.
+        More than one node can be located in the same @path
+        because they can have different env and source value.
+
+        Eg:
+        ```
+        t.get_nodes_by_path(("path", "to", "setting"))
+        -> [Node('setting', env='default'), Node('setting'), env='production']
+        ```
         """
-        ...
+        for p in path:
+            self.root.children[p]
 
     def remove_node(self, node: Node) -> Node:
         """
@@ -271,9 +382,12 @@ class Tree:
     def height(self):
         pass
 
-    def show(self):
-        """Pre-order algorithm to show tree structure"""
-        self._show(self.root)
+    def show(self, root=None):
+        """
+        Show tree structure from @root
+        """
+        root = root or self.root
+        self._show(root)
 
     def _show(self, node, indent=0):
         spacing = "    "
