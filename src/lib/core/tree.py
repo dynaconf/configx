@@ -18,6 +18,54 @@ def main():
 # main components
 
 
+class BaseNode:
+    """
+    Common behaviour for PathNode and LeafNode
+    """
+
+    def __init__(
+        self,
+        parent: BaseNode | None = None,
+    ):
+        self.parent = parent
+        self.depth = 0
+        self.__name = ""
+
+    @property
+    def name(self) -> str:
+        return self.__name
+
+    @name.setter
+    def name(self, value):
+        self.__name = value
+
+    def is_root(self):
+        return self.parent is None
+
+    def full_path(self):
+        path = self.parent.full_path() if self.parent else ()
+        return TreePath((*path, self.name))
+
+    def __repr__(self):
+        return f"""{self.__class__}('{self.name}')"""
+
+
+class PathNode(BaseNode):
+    """
+    Responsible for holding shared path information for LeafNodes
+    """
+
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = name
+
+
+class LeafNode(BaseNode):
+    """
+    Responsible for holding the Setting object
+    """
+
+
 class Node:
     """
     - Inner nodes: Responsible for holding shared path/key information
@@ -26,6 +74,7 @@ class Node:
 
     TODO: consider creating different classes for them
     """
+
 
     def __init__(
         self,
@@ -113,39 +162,6 @@ class Setting:
         Should be calculated from evaluated value
         """
         return "foo"
-
-
-@dataclass
-class SettingPath:
-    """
-    Data Structure to SettingPath data
-
-    TODO may this class could be the type itself
-    """
-
-    path: TreePath
-
-    @property
-    def name(self):
-        return self.path[-1]
-
-    @property
-    def type(self):
-        return TreePath
-
-
-# class Setting:
-#     """
-#     Data Structure to Setting data
-#     """
-
-#     def __init__(self, name:str, raw_data: Raw | SimpleTypes):
-#         self.name: str = name
-#         self.raw_data: Raw = raw_data
-#         self.source: DataSource = "programmatic"
-#         self.env: Environment = "default"
-#         self.evaluated: SimpleTypes | None = None
-#         self.type: type[AllTypes]
 
 
 class Bucket:
@@ -314,6 +330,10 @@ class Tree:
     The core tree which holds Setting objects
 
     Resonsible for manipulating Setting objects consistently
+
+    Notes
+    - Maybe Tree could be a module (singleton). This would avoid
+    instance duplication and would provide better LRU caching
     """
 
     def __init__(self, root: Node | None = None):

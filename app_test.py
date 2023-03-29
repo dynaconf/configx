@@ -16,6 +16,9 @@ from lib.shared.utils import normalize_compound_type
 
 
 def main():
+    ...
+
+def stash_bucket_inspect():
     nodeA = N("foo")
     nodeB = N("bar")
     nodeC = N("spam", S("spam", "eggs"))
