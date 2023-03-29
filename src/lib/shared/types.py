@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Sequence
 
 # cicular import workaround
 if TYPE_CHECKING:
-    from lib.core.tree import Node
+    from lib.core.tree import BaseNode
 else:
-    Node = object
+    BaseNode = object
 
 # TODO resolve possible circular import issues
 
@@ -21,5 +21,5 @@ Raw = str  # should be class
 Environment = str  # should be class
 DataSource = str  # should be class
 
-Children = None | Sequence[Node]
+Children = None | Sequence[BaseNode]
 TreePath = tuple[str]  # ("path", "to", "setting")
