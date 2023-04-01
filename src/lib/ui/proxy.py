@@ -1,33 +1,46 @@
-from types import SimpleNamespace
-from typing import Any
+from __future__ import annotations
+
+from typing import NamedTuple
 
 
-class A:
-    number: int
-    string: str
-    dict: dict
-    list: list
-
-    def __getattribute__(self, name: str) -> Any:
-        annotations = object.__getattribute__(self, "__annotations__")
-        self_name = object.__getattribute__(self, "__str__")()
-        if name in annotations:
-            print(f"{name}={annotations[name]}")
-        else:
-            print(f"{name} do not belong to object")
+def main():
+    a = DotGetter()
+    # print(f"{a.foo.bar=}")  # [out]: ["foo", "bar"]
+    # print(f"{a.spam=}")  # [out]: ["foo", "bar", "spam"]
+    print(f"{a.foo.bar()=}")
+    print(f"{a.spam.eggs()=}")
 
 
-# a = type("B", (object,), {"number": int})
-# class Typespace(SimpleNamespace):
-#     def __init__(self, /, **kwargs):
-#         super().__init__(**kwargs)
-#         type(self).__annotations__.update(**kwargs)
+class DotGetter:
+    """
+    d = DotGetter()
+    d.foo.bar -> ["foo", "bar"]
+    d.spam -> ["spam"]
+    """
+
+    def __init__(self, path: list[str] | None = None):
+        self._path = path if path else []
+
+    def __getattribute__(self, name):
+        # special name handling
+        if not name.startswith("_") and not name.startswith("__"):
+            self_path = object.__getattribute__(self, "_path")
+            self_path.append(name)
+            return DotGetter(self_path)
+
+        # normal name handling
+        object.__setattr__(self, "_path", [])
+        return object.__getattribute__(self, name)
+
+    def __call__(self):
+        print("foo")
+        value = self._path
+        object.__setattr__(self, "_path", [])
+        return value
+
+    def __repr__(self):
+        return str(self._path)
 
 
-A = type("A", (), {"__annotations__": {"number": int}})
-a = A()
-# reveal_type(a.foo)
-reveal_type(a.number)
-# a.foo
-# a.number
-# a._0
+if __name__ == "__main__":
+    exit(main())

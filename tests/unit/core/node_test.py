@@ -4,8 +4,8 @@ PathNode and LeafNode API behaviour and representation
 
 import pytest
 
-from lib.core.tree import BaseNode, LeafNode, PathNode
-from lib.core.tree import Setting as S
+from lib.core.nodes import BaseNode, LeafNode, PathNode
+from lib.core.nodes import Setting as S
 
 # from tests.utils import print_header
 
@@ -136,9 +136,6 @@ def main_wrapper():
 
 
 def test_main():
-    """
-    Should get full path of PathNode and LeafNodes
-    """
     assert main_wrapper() == 0
 
 

@@ -1,7 +1,8 @@
 import pytest
 
-from lib.core.tree import Node as N
-from lib.core.tree import PositionalDict
+from lib.core.bucket import PositionalDict
+from lib.core.nodes import BaseNode, LeafNode, NodeId, PathNode
+from lib.core.nodes import Setting as S
 
 params__positional_dict__initial = (
     pytest.param([("foo", 1)], id="one-element"),
@@ -14,6 +15,7 @@ def test_pos_dict_init(initial):
     """
     Given initialization arguments
     Should succeed
+    TODO should this be parametrized?
     """
     p = PositionalDict(initial)
 
@@ -25,6 +27,9 @@ def test_pos_dict_init(initial):
 
 
 def test_pos_dict_init__repeated_elements():
+    """
+    Should not allow repeated elements (kinda trivial)
+    """
     # on init
     p_init = PositionalDict([("foo", "A"), ("foo", "B")])
     assert len(p_init) == 1
@@ -47,25 +52,48 @@ def test_pos_dict_set():
 
 
 def test_pos_dict_set__node():
-    node = N("foo")
+    node = PathNode("foo", None)
     p = PositionalDict()
-    p[node] = node
+    p[node.identifier] = node
 
     assert len(p) == 1
     assert p[0] == node
 
-def test_pos_dict_get_by_index__node():
+
+def test_pos_dict_get_node_by_index():
     """
     Should return Node by it's index
     """
-    node = N("foo")
-    p = PositionalDict([(node, node)])
-    assert p[0] == node
+    nodeA = PathNode("foo", None)
+    nodeB = PathNode("bar", None)
+    nodeC = PathNode("spam", None)
+    p = PositionalDict([(nodeA, nodeA)])
+    p.update({nodeB: nodeB, nodeC: nodeC})
+    assert p[0] == nodeA
+    assert p[1] == nodeB
+    assert p[2] == nodeC
 
-def test_pos_dict_get_by_name__node():
-    """
-    Should return Node by it's identify.
-    In case of node, it can be (name) or (name, env, source)
 
-    not sure if this is needed
+def test_pos_dict_get_node_by_id():
     """
+    Should return Node by it's identity.
+    """
+    root = PathNode("root", None)
+    nodeA = PathNode("foo", None)
+    nodeB = LeafNode(S("bar", "value", "env", "src"), root)
+    nodeC = PathNode("spam", None)
+
+    p = PositionalDict()
+    p.update(
+        {nodeA.identifier: nodeA, nodeB.identifier: nodeB, nodeC.identifier: nodeC}
+    )
+
+    # PathNode
+    id_queryA = NodeId(("foo",))
+    assert p[nodeA.identifier] == nodeA
+    assert p[id_queryA] == nodeA
+
+    # LeafNode
+    id_queryB = NodeId(("root", "bar"), "env", "src")
+    assert p[nodeB.identifier] == nodeB
+    assert p[id_queryB] == nodeB
