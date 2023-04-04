@@ -11,6 +11,12 @@ else:
     PathNode = object
 
 
+def main():
+    pos = PositionalDict()
+    pos.update({"foo": "bar", "spam": "eggs", "blabla": 123})
+    print(pos)
+
+
 class Bucket:
     """
     The container for Nodes and Leaves
@@ -107,7 +113,7 @@ class Bucket:
         return len(self.__container)
 
     def __iter__(self):
-        yield from self.__container
+        yield from self.__container.values()
 
     def __str__(self):
         return "\n".join(str(n) for n in self)
@@ -165,3 +171,7 @@ class PositionalDict(OrderedDict):
                     return node
 
         return super().__getitem__(key)
+
+
+if __name__ == "__main__":
+    exit(main())

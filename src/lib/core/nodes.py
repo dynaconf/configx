@@ -30,6 +30,11 @@ class BaseNode:
     def name(self) -> str:
         return self.__name
 
+    @property
+    def value(self) -> str:
+        """Trivial implementation for convenience of printing nodes as key,val"""
+        return ""
+
     @name.setter
     def name(self, value):
         self.__name = value
@@ -134,6 +139,13 @@ class LeafNode(BaseNode):
         Inspecting object
         """
         return f"{self.get_identifier()} = {repr(self.setting.raw_data)}"
+
+    @property
+    def value(self):
+        """
+        Conveniece for printing node value
+        """
+        return self.setting.raw_data
 
     @property
     def identifier(self):
