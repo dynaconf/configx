@@ -7,7 +7,7 @@ so I can test the design solutions I have in mind for it.
 
 - core:
     - [x] Implement core Tree components (nodes, bucket, setting, etc)
-    - Implement basic Tree crud and basic conveniences
+    - [x] Implement basic Tree crud and basic conveniences
 
 - docs:
     - Add and setup mkdocs documentation

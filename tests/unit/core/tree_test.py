@@ -5,7 +5,7 @@ Test Tree API behaviour
 import pytest
 
 from lib.core.nodes import LeafNode, PathNode, Setting
-from lib.core.tree import Tree, get_nodes_by_path_from
+from lib.core.tree import PathNotFoundError, Tree, get_nodes_by_path_from
 from lib.operations.evaluation import evaluate_node
 
 
@@ -101,6 +101,39 @@ def test_create_node_from_compound_types():
     assert (
         t.get_node_by_path(("my_key_b", "1", "eggs")) == nodeB.children[1].children[0]
     )
+
+
+def test_remove_node():
+    """
+    Should remove node and parent links properly
+    """
+    t = Tree()
+    t.create_node("foo", {"old_value": 123})
+    target_node = t.get_node_by_path(("foo", "old_value"))
+    result = t.remove_node(target_node)
+
+    assert len(t) == 1
+    assert result == target_node
+
+    with pytest.raises(PathNotFoundError):
+        t.get_node_by_path(("foo", "old_value"))
+
+
+def test_replace_node():
+    """
+    Should replace a node with another
+    """
+    t = Tree()
+    t.create_node("foo", {"old_value": 123})
+    new_node = LeafNode(Setting("new_value", 456), None)
+    replaced_node = t.get_node_by_path(("foo", "old_value"))
+    result = t.replace_node(replaced_node, new_node)
+
+    assert result == replaced_node
+    assert t.get_node_by_path(("foo", "new_value")) == new_node
+
+    with pytest.raises(PathNotFoundError):
+        t.get_node_by_path(("foo", "old_value"))
 
 
 def main():

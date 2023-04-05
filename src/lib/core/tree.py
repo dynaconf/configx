@@ -25,6 +25,10 @@ class PathNotFoundError(Exception):
     pass
 
 
+class MultipleNodesFoundError(Exception):
+    pass
+
+
 class Tree:
     """
     The core tree which holds Setting objects
@@ -74,13 +78,41 @@ class Tree:
 
         raise TypeError("Param @element should be of type Setting or None")
 
-    def get_node_by_path(self, path: TreePath) -> NodeType | Iterable[NodeType]:
+    def replace_node(self, old_node: NodeType, new_node: NodeType) -> NodeType:
+        """
+        Replace node at @path by @new_node and return @old_node
+        """
+        parent = old_node.parent
+        self.remove_node(old_node)
+        new_node.parent = parent
+        parent.children.append(new_node)  # every parent should be PathNode
+        return old_node
+
+    def remove_node(self, node: NodeType) -> NodeType:
+        """
+        Remove @node from tree and return removed Node
+        """
+        if not node.parent:
+            raise TypeError("Node is a root, can't be removed")
+
+        parent = node.parent  # every parent should be PathNode
+        parent.children.remove_by_node_id(node.identifier)
+        self.size -= 1
+        return node
+
+    def get_node_by_path(self, path: TreePath) -> NodeType:
         """
         Convenience function to return single node when
         there is just a single result.
         """
-        result = self.get_nodes_by_path(path)
-        return list(result)[0] if len(list(result)) == 1 else result
+        result = list(self.get_nodes_by_path(path))
+        if nodes_found := len(result) > 1:
+            raise MultipleNodesFoundError(
+                f"More than one node was found: {nodes_found} nodes"
+            )
+        elif len(result) == 0:
+            raise PathNotFoundError(f"Path was not found: {path}")
+        return result[0]
 
     def get_nodes_by_path(self, path: TreePath) -> Iterable[NodeType]:
         """
@@ -97,12 +129,6 @@ class Tree:
             return []
 
         return result if result else []
-
-    def remove_node(self, node: NodeType) -> NodeType:
-        """
-        Remove @node from tree and return removed Node
-        """
-        ...
 
     # Utils
 

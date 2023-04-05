@@ -84,7 +84,7 @@ class PathNode(BaseNode):
     def __init__(
         self,
         name: str,
-        parent: BaseNode | None,
+        parent: PathNode | None,
         children: Children | None = None,
         node_type: PathNodeTypes | None = None,
     ):
@@ -131,7 +131,7 @@ class LeafNode(BaseNode):
       only (name, ...). but there is no clear gain in making that distinction.
     """
 
-    def __init__(self, setting: Setting, parent: BaseNode):
+    def __init__(self, setting: Setting, parent: PathNode | None):
         super().__init__(parent, setting.name)
         self.setting = setting
         self.__id = NodeId(self.get_full_path(), self.setting.env, self.setting.source)

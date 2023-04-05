@@ -79,6 +79,14 @@ class Bucket:
         """
         return self.__container[index]
 
+    def remove_by_node_id(self, node_id: NodeId) -> NodeType:
+        """
+        Remove node from bucket by it's @node_id and return it
+        """
+        self.__container.move_to_end(node_id)
+        _, node = self.__container.popitem()
+        return node
+
     # Iterators
 
     def iter(self, type: Literal["leaf", "path"] | None = None):
