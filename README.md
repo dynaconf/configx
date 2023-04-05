@@ -3,6 +3,25 @@
 Here I'll experiment trying to implement dynaconf from scratch,
 so I can test the design solutions I have in mind for it.
 
+## Backlog
+
+- core:
+    - [x] Implement core Tree components (nodes, bucket, setting, etc)
+    - Implement basic Tree crud and basic conveniences
+
+- docs:
+    - Add and setup mkdocs documentation
+    - Add API Reference, examples and doc tests for Tree + Tree components
+
+- operations:
+    - Implement public settings acessor with raw type evaluation
+    - Implement @format evaluation with string interpolation
+
+- general:
+    - organize modules "export names". Eg. `from core import Tree, PathNode`
+    - organize shared types and types of classes (to avoid circular imports)
+
+
 ## Design (WIP)
 
 Module roles:

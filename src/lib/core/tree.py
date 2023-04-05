@@ -2,13 +2,12 @@
 Holds the core data structure to hold and provide
 essential operations over Setting objects consistently.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Iterable
 
-from lib.core.bucket import Bucket
-from lib.core.nodes import BaseNode, LeafNode, PathNode, Setting
+from lib.core.nodes import LeafNode, PathNode, Setting
 from lib.shared.types import (
     AllTypes,
     CompoundTypes,
@@ -20,30 +19,6 @@ from lib.shared.types import (
     TreePath,
 )
 from lib.shared.utils import normalize_compound_type
-
-
-def main():
-    """Quick testing"""
-    t = Tree()
-    data = {"foo": "bar", "spam": {"nested": "one"}}
-    t.create_node("foo", "bar")
-    t.create_node("baz", ["blabla", "bembem", {"bim": "bom"}])
-    t.create_node("simple", 123)
-    t.create_node("simple", 456, env="production")
-    t.create_node("spam", {"nested": "one"})
-    t.create_node("password", "pass123")
-
-    # create two nodes with same path
-    spam_node = list(t.get_nodes_by_path(("spam",)))[0]
-    t.create_node("nested", "two", spam_node, env="production")  # type: ignore
-    t.create_node("nested", {"more_nesting": True}, spam_node, source="toml")  # type: ignore
-
-    path = ("spam", "nested")
-    a = t.get_nodes_by_path(path)
-    [print(n) for n in a]
-
-    # print tree
-    t.show()
 
 
 class PathNotFoundError(Exception):
@@ -66,7 +41,6 @@ class Tree:
         self.size: int = 0
 
     # CRUD
-
     def create_node(
         self,
         name: str,
@@ -90,8 +64,8 @@ class Tree:
             return new_node
 
         if isinstance(element, CompoundTypes):
-            new_node = PathNode(name, parent)
-            elements = normalize_compound_type(element)
+            node_type, elements = normalize_compound_type(element)
+            new_node = PathNode(name, parent, node_type=node_type)  # type: ignore
             parent.children.append(new_node)
             self.size += 1
             for k, v in elements.items():
@@ -100,45 +74,29 @@ class Tree:
 
         raise TypeError("Param @element should be of type Setting or None")
 
+    def get_node_by_path(self, path: TreePath) -> NodeType | Iterable[NodeType]:
+        """
+        Convenience function to return single node when
+        there is just a single result.
+        """
+        result = self.get_nodes_by_path(path)
+        return list(result)[0] if len(list(result)) == 1 else result
+
     def get_nodes_by_path(self, path: TreePath) -> Iterable[NodeType]:
         """
         Get nodes by it's @path.
         More than one node can be located in the same @path
         because they can have different env and source value.
 
-        Eg:
-        ```
-        t.get_nodes_by_path(("path", "to", "setting"))
-        -> [Node('setting', env='default'), Node('setting'), env='production']
-        ```
+        Args:
+            path: the path to the setting (without 'root')
         """
         try:
-            result = self._get_nodes_by_path(self.root.children, path)
+            result = get_nodes_by_path_from(self.root.children, path)
         except PathNotFoundError:
             return []
 
         return result if result else []
-
-    def _get_nodes_by_path(
-        self, nodes: Iterable[NodeType], path: TreePath, position: int = 0
-    ) -> Iterable[NodeType] | None:
-        """
-        Recursive function to find nodes with given path
-        """
-        match_nodes = [n for n in nodes if n.name == path[position]]
-
-        # base case: not found
-        if not len(match_nodes):
-            raise PathNotFoundError(f"Path does not exist: {repr(path)}")
-
-        # base case: last path position, return results
-        if position == len(path) - 1:
-            return match_nodes
-
-        # not final path yet
-        path_node = [n.children for n in match_nodes if isinstance(n, PathNode)]
-        path_node_children = path_node[0] if path_node else []
-        return self._get_nodes_by_path(path_node_children, path, position + 1)
 
     def remove_node(self, node: NodeType) -> NodeType:
         """
@@ -212,7 +170,32 @@ class Tree:
         return self.size
 
 
-# Types
+def get_nodes_by_path_from(
+    nodes: Iterable[NodeType] | PathNode, path: TreePath, position: int = 0
+) -> Iterable[NodeType] | None:
+    """
+    Recursive function to find nodes at given path
+    from a given iterable of nodes.
+    """
+    nodes = nodes.children if isinstance(nodes, PathNode) else nodes
+    match_nodes = [n for n in nodes if n.name == path[position]]
+
+    # base case: not found
+    if not len(match_nodes):
+        raise PathNotFoundError(f"Path does not exist: {repr(path)}")
+
+    # base case: last path position, return results
+    if position == len(path) - 1:
+        return match_nodes
+
+    # not final path yet
+    path_node = [n.children for n in match_nodes if isinstance(n, PathNode)]
+    path_node_children = path_node[0] if path_node else []
+    return get_nodes_by_path_from(path_node_children, path, position + 1)
+
+
+def main():
+    pass
 
 
 if __name__ == "__main__":

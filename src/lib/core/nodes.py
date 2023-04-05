@@ -6,6 +6,8 @@ from typing import NamedTuple
 from lib.core.bucket import Bucket
 from lib.shared.types import *
 
+PathNodeTypes = dict | list
+
 
 class BaseNode:
     """
@@ -19,12 +21,14 @@ class BaseNode:
         parent: BaseNode | None = None,
         name: str = "",
         children: Children | None = None,
+        node_type: PathNodeTypes | None = None,
     ):
         self.parent = parent
         self.children = Bucket(children, owner=self) if children else None
         self.depth = 0
         self.__name = name
         self.__path = None
+        self.__type = node_type
 
     @property
     def name(self) -> str:
@@ -34,6 +38,10 @@ class BaseNode:
     def value(self) -> str:
         """Trivial implementation for convenience of printing nodes as key,val"""
         return ""
+
+    @property
+    def type(self) -> PathNodeTypes | None:
+        return self.__type
 
     @name.setter
     def name(self, value):
@@ -74,9 +82,13 @@ class PathNode(BaseNode):
     """
 
     def __init__(
-        self, name: str, parent: BaseNode | None, children: Children | None = None
+        self,
+        name: str,
+        parent: BaseNode | None,
+        children: Children | None = None,
+        node_type: PathNodeTypes | None = None,
     ):
-        super().__init__(parent, name, children)
+        super().__init__(parent, name, children, node_type=node_type)
         # assures PathNode have a bucket
         if not self.children:
             self.children = Bucket()
