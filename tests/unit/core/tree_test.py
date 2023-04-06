@@ -2,10 +2,17 @@
 Test Tree API behaviour
 """
 
+from typing import Iterable
+
 import pytest
 
 from lib.core.nodes import LeafNode, PathNode, Setting
-from lib.core.tree import PathNotFoundError, Tree, get_nodes_by_path_from
+from lib.core.tree import (
+    MultipleNodesFoundError,
+    PathNotFoundError,
+    Tree,
+    get_nodes_by_path_from,
+)
 from lib.operations.evaluation import evaluate_node
 
 
@@ -15,6 +22,7 @@ def test_get_nodes_by_path_from():
 
     *most of these test-assertions rely on this working correctly
     """
+    # create raw tree
     root = PathNode("root", None)
     nodeA = LeafNode(Setting("foo", "bar"), root)
     nodeA_diff_env = LeafNode(Setting("foo", "bar", env="prod"), root)
@@ -42,6 +50,94 @@ def test_get_nodes_by_path_from():
         list(get_nodes_by_path_from(root, ("nesting_b", "nesting_c", "nested")))[0]  # type: ignore
         == nodeD
     )
+
+
+def test_get_nodes_by_path():
+    """
+    Should get values correctly
+    """
+    t = Tree()
+    t.create_node("single", 123)
+    t.create_node("repeated", "bar")
+    t.create_node("repeated", "other_bar", env="prod")
+    t.create_node("nested", ["some", 456])
+
+    # single value
+    result_single = t.get_nodes_by_path(("single",))
+    assert isinstance(result_single, (list))
+    assert result_single[0].value == 123
+
+    # doubled value
+    result_single = t.get_nodes_by_path(("repeated",))
+    assert isinstance(result_single, (list))
+    assert result_single[0].value == "bar"
+    assert result_single[1].value == "other_bar"
+
+    # nested value
+    result_single = t.get_nodes_by_path(("nested",))
+    assert isinstance(result_single, (list))
+    assert result_single[0].children[0].value == "some"
+    assert result_single[0].children[1].value == 456
+
+
+def test_get_nodes_by_path__inexistent_path():
+    """
+    Should return default or raise when no result is found
+    """
+    t = Tree()
+    t.create_node("single", 123)
+    t.create_node("repeated", "bar")
+    t.create_node("repeated", "other_bar", env="prod")
+    t.create_node("nested", ["some", 456])
+
+    # when no-default should raise
+    with pytest.raises(PathNotFoundError):
+        t.get_nodes_by_path(("non_existent", "path"))
+
+    # when default should return default
+    assert t.get_nodes_by_path(("non_existent", "path"), "default") == "default"
+
+
+def test_get_node_by_path():
+    """
+    when one element, should return just one element
+    when multiple and first=True, should reutrn first element
+    when multiple and first=False, should raise
+    """
+    t = Tree()
+    t.create_node("single", 123)
+    t.create_node("repeated", "bar")
+    t.create_node("repeated", "other_bar", env="prod")
+    t.create_node("nested", ["some", 456])
+
+    # when one element, should return just one element
+    assert t.get_node_by_path(("single",)).value == 123
+
+    # when multiple and first=True, should reutrn first element
+    assert t.get_node_by_path(("repeated",), first=True).value == "bar"
+
+    # when multiple and first=False, should raise
+    with pytest.raises(MultipleNodesFoundError):
+        t.get_node_by_path(("repeated",))
+
+
+def test_get_node_by_path__inexistent_path():
+    """
+    when no-default should raise
+    when default should return default
+    """
+    t = Tree()
+    t.create_node("single", 123)
+    t.create_node("repeated", "bar")
+    t.create_node("repeated", "other_bar", env="prod")
+    t.create_node("nested", ["some", 456])
+
+    # when no-default should raise
+    with pytest.raises(PathNotFoundError):
+        t.get_node_by_path(("non_existent", "path"))
+
+    # when default should return default
+    assert t.get_node_by_path(("non_existent", "path"), "default") == "default"
 
 
 def test_create_node_from_simple_types():

@@ -100,21 +100,24 @@ class Tree:
         self.size -= 1
         return node
 
-    def get_node_by_path(self, path: TreePath) -> NodeType:
+    def get_node_by_path(self, path: TreePath, default=None, first=False) -> NodeType:
         """
         Convenience function to return single node when
         there is just a single result.
         """
-        result = list(self.get_nodes_by_path(path))
-        if nodes_found := len(result) > 1:
-            raise MultipleNodesFoundError(
-                f"More than one node was found: {nodes_found} nodes"
-            )
-        elif len(result) == 0:
-            raise PathNotFoundError(f"Path was not found: {path}")
-        return result[0]
+        try:
+            nodes = self.get_nodes_by_path(path)
+            if len(nodes) > 1 and first == False:
+                raise MultipleNodesFoundError(
+                    f"More than one node was found: {len(nodes)} nodes"
+                )
+            return nodes[0]
+        except PathNotFoundError:
+            if not default:
+                raise
+            return default
 
-    def get_nodes_by_path(self, path: TreePath) -> Iterable[NodeType]:
+    def get_nodes_by_path(self, path: TreePath, default=None) -> list[NodeType]:
         """
         Get nodes by it's @path.
         More than one node can be located in the same @path
@@ -126,7 +129,9 @@ class Tree:
         try:
             result = get_nodes_by_path_from(self.root.children, path)
         except PathNotFoundError:
-            return []
+            if not default:
+                raise
+            return default
 
         return result if result else []
 
@@ -198,12 +203,24 @@ class Tree:
 
 def get_nodes_by_path_from(
     nodes: Iterable[NodeType] | PathNode, path: TreePath, position: int = 0
-) -> Iterable[NodeType] | None:
+) -> list[NodeType] | None:
     """
     Recursive function to find nodes at given path
     from a given iterable of nodes.
+
+    NOTES:
+        this may implement generators
+        is this recursion efficient?
+
+    Args:
+        nodes: nodes that will be looked up
+        path: the full path which the nodes must match
+        position: the position of the path it will use here
+
+    Raises:
+        PathNotFoundError: when no node is found for given path
     """
-    nodes = nodes.children if isinstance(nodes, PathNode) else nodes
+    nodes = iter(nodes.children) if isinstance(nodes, PathNode) else nodes
     match_nodes = [n for n in nodes if n.name == path[position]]
 
     # base case: not found
