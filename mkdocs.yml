@@ -1,0 +1,79 @@
+site_name: Dynacon from Sratch
+
+nav:
+
+  - Welcome:
+    - Overview: "home/index.md"
+    - Getting Started: "home/getting-started.md"
+    - FAQ: ""
+    - Features:
+      - Validation: ""
+      - Multi-sources: ""
+      - Templating and Casting: ""
+    - About:
+      - Changelog: ""
+      - Contributing: ""
+      - License: ""
+
+  - User Guides:
+    - "user/index.md"
+    - General:
+      - How to do this: ""
+      - How to do that: ""
+      - Doing something: ""
+    - Framework-specific:
+      - Django:
+        - Setup: ""
+        - Using django: ""
+      - Flask:
+        - Setup: ""
+        - Using flask: ""
+      - FastApi:
+        - Setup: ""
+        - Using FastApi: ""
+    - Reference:
+      - Validation: ""
+      - Loaders: ""
+      - Lazy Evaluation: ""
+
+  - Development: 
+    - "dev/index.md"
+    - Understanding the system: 
+      - Modules: ""
+      - Data Flow: ""
+      - Considerations: ""
+    - Guides:
+      - Tooling: ""
+      - Code Standards: ""
+      - Git workflows: ""
+      - Testing: ""
+    - API Reference:
+      - Core: "dev/api/core.md"
+      - Operators: ""
+      - I/O: ""
+      - Services: ""
+
+theme:
+  name: material
+  features:
+    - navigation.tabs 
+    - navigation.sections 
+    - navigation.indexes 
+    # - navigation.expand 
+    - navigation.path
+
+markdown_extensions:
+
+  # Python Markdown
+  - admonition
+  - toc:
+      permalink: true
+
+  # Python Markdown Extensions
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  # https://mkdocstrings.github.io/usage/
+  - mkdocstrings
+
