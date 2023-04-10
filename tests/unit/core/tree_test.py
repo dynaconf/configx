@@ -13,7 +13,7 @@ from lib.core.tree import (
     Tree,
     get_nodes_by_path_from,
 )
-from lib.operations.evaluation import evaluate_node
+from lib.operations.evaluation import evaluate_subtree
 
 
 def test_get_nodes_by_path_from():
@@ -267,23 +267,23 @@ def main():
     print(">>> # evaluating node to python objects")
     root = PathNode("root", None)
     print(">>> evaluate_node(LeafNode(Setting('foo', 123), root))")
-    ev = evaluate_node(LeafNode(Setting("foo", 123), root))
+    ev = evaluate_subtree(LeafNode(Setting("foo", 123), root))
     print(f"{ev=} {type(ev)}")
     print()
 
     print(">>> evaluate_node(LeafNode(Setting('bar', 'my_value'), root))")
-    ev = evaluate_node(LeafNode(Setting("bar", "my_value"), root))
+    ev = evaluate_subtree(LeafNode(Setting("bar", "my_value"), root))
     print(f"{ev=} {type(ev)}")
     print()
 
     print(">>> evaluate_node(LeafNode(Setting('bar', 12.2), root))")
-    ev = evaluate_node(LeafNode(Setting("bar", 12.2), root))
+    ev = evaluate_subtree(LeafNode(Setting("bar", 12.2), root))
     print(f"{ev=} {type(ev)}")
     print()
 
     print(">>> evaluate_node(nested_node)")
 
-    ev = evaluate_node(
+    ev = evaluate_subtree(
         t.create_node("nesting", {"foo": "bar", "spam": [1, 2, 3, 4]}, root)
     )
     print(f"{ev=} {type(ev)}")

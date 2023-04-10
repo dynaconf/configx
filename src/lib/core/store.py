@@ -1,10 +1,19 @@
 """
-Defines high-level CRUD operations on settings
+Settings store abstraction class and helper components
 """
 from __future__ import annotations
 
 from lib.core.tree import Tree
 from lib.shared.types import AllTypes, Environment, TreePath
+
+
+class Store:
+    """
+    Store for settings.
+
+    Responsible for controlling the core data structure (Tree)
+    and provide user-level api on the stored settings.
+    """
 
 
 def create_settings_tree() -> Tree:

@@ -3,15 +3,21 @@ Shared Types for the project
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Sequence, TypeAlias
 
 # cicular import workaround
 if TYPE_CHECKING:
     from lib.core.nodes import BaseNode, LeafNode, PathNode
 else:
+    # hack
     BaseNode = object
     LeafNode = object
     PathNode = object
+
+# TODO make this the source of types, to try to avoid circular imports
+# BaseNode: TypeAlias = BaseNode
+# LeafNode: TypeAlias = LeafNode
+# PathNode: TypeAlias = PathNode
 
 # TODO resolve possible circular import issues
 
@@ -26,4 +32,4 @@ DataSource = str  # should be class
 Children = None | Sequence[BaseNode]
 TreePath = tuple[str, ...]  # ("path", "to", "setting")
 
-NodeType = LeafNode | PathNode
+NodeType: TypeAlias = LeafNode | PathNode

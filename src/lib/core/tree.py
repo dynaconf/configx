@@ -41,7 +41,7 @@ class Tree:
     """
 
     def __init__(self):
-        self.root = PathNode("root", None)
+        self.root = PathNode("root", None, node_type=dict) # TODO fix this
         self.size: int = 0
 
     # CRUD

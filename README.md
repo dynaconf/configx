@@ -10,8 +10,10 @@ so I can test the design solutions I have in mind for it.
     - [x] Implement basic Tree crud and basic conveniences
 
 - docs:
-    - Add and setup mkdocs documentation
-    - Add API Reference, examples and doc tests for Tree + Tree components
+    - [x] Add and setup mkdocs documentation
+    - [x] Add API Reference (mkdocstrings)
+    - Add small docstring example/tests for `core` components
+    - Add more comprehensive test/exmaples for core module.
 
 - operations:
     - Implement public settings acessor with raw type evaluation
