@@ -3,10 +3,11 @@ from attr import converters
 
 from lib.core.tree import Tree
 from lib.operations.evaluation import (
+    TokenError,
     evaluate_subtree,
     get_converter,
     parse_token_symbols,
-    TokenError
+    tree_to_dict
 )
 
 # from lib.operations.evaluation import evaluate_subtree
@@ -15,6 +16,7 @@ from lib.operations.evaluation import (
 @pytest.mark.parametrize(
     "raw_data,expected",
     (
+        pytest.param("no-tokens", ([], "no-tokens"), id="none-value"),
         pytest.param("@none", ([get_converter("none")], ""), id="none-value"),
         pytest.param("@int 123", ([get_converter("int")], "123"), id="simple-int"),
         pytest.param("@bool 123", ([get_converter("bool")], "123"), id="simple-bool"),
@@ -34,8 +36,9 @@ from lib.operations.evaluation import (
 )
 def test_parse_token_symbols(raw_data, expected):
     """
-    Should perform the following transformations:
-    "@mytoken data" -> ([token_transformer], 'data')
+    Should perform the following conversion:
+    "@mytoken data" -> ([mytoken-transformer], 'data')
+    "@int @mytoken data" -> ([int-transformer, mytoken-transformer], 'data')
     """
     converter_stack, data = parse_token_symbols(raw_data)
     assert converter_stack == expected[0]
@@ -53,10 +56,22 @@ def test_parse_token_symbols_raises():
         parse_token_symbols("@int @unknown data")
 
 
+def test_apply_converter_chain():
+    """
+    Should apply a chain of converters to data when there are no dependencies
+    """
+
+
+def test_apply_converter_chain_raises():
+    """
+    Should raise LazyValueFound when a lazy value is found
+    """
+
+
 # evaluating
 
 
-def test_evaluate_raw_types_with_one_level():
+def test_tree_to_dict_flat():
     """
     When
         tree has one level
@@ -68,18 +83,18 @@ def test_evaluate_raw_types_with_one_level():
     t.create_node("int_node", 123)
     t.create_node("float_node", 1.23)
 
-    result = evaluate_subtree(t.root)
+    result = tree_to_dict(t.root)
     assert isinstance(result, dict)
     assert result["str_node"] == "value"
     assert result["int_node"] == 123
     assert result["float_node"] == 1.23
 
 
-def test_evaluate_raw_types_with_nested_levels():
+def test_tree_to_dict_nested():
     """
     When
         tree has multiple levels
-        tree has only raw types (bypass @tokens)
+        tree has only raw types
     Should return the correct python data structure
     """
     t = Tree()
@@ -94,7 +109,7 @@ def test_evaluate_raw_types_with_nested_levels():
     )
     t.create_node("nesting_b", [1, 2, 3, {"foo": "bar"}])
 
-    result = evaluate_subtree(t.root)
+    result = tree_to_dict(t.root)
     assert isinstance(result, dict)
     assert result["nesting_a"]["str_node"] == "value"
     assert result["nesting_a"]["int_node"] == 123
@@ -115,18 +130,13 @@ def test_evaluate_raw_types_with_nested_levels():
         # pytest.param("@dict {}", 123, id="dict-casting"),
     ),
 )
-def test_evaluate_one_casting_token_without_lazy_values(raw_data, evaluated):
+def test_evaluate_single_casting_token_without_lazy_values(raw_data, evaluated):
     """
     When
         Tree has casting tokens
         Tree hasn't lazy tokens (which require evaluation dependencies)
     Should convert to the correct type
     """
-    t = Tree()
-    t.create_node("value", raw_data)
-    result = evaluate_subtree(t.root)
-    assert isinstance(result, dict)
-    assert result["value"] == evaluated
 
 
 def test_evaluate_chained_casting_token_without_lazy_values():
