@@ -4,13 +4,45 @@ from attr import converters
 from lib.core.tree import Tree
 from lib.operations.evaluation import (
     TokenError,
+    convert_dot_notation_to_tree_path,
     evaluate_subtree,
     get_converter,
+    get_template_variables,
     parse_token_symbols,
-    tree_to_dict
+    template_dependencies_in_context,
+    tree_to_dict,
 )
 
 # from lib.operations.evaluation import evaluate_subtree
+
+
+def test_convert_dot_notation_to_tree_object():
+    """
+    Should convert foo.bar.spam to ('foo', 'bar', 'spam')
+    """
+    c = convert_dot_notation_to_tree_path
+
+    assert c("foo") == ("foo",)
+    assert c("foo.bar") == ("foo", "bar")
+    assert c(".foo.bar") == ("", "foo", "bar")
+
+
+def test_get_template_variables():
+    """
+    Should
+        template variables from string template
+    When
+        between single or double coursly braces {} or {{}}
+    """
+    c = get_template_variables
+
+    assert c("foo bar") == ()
+    assert c("foo {bar}") == ("bar",)
+    assert c("{bar} foo") == ("bar",)
+    assert c("foo {{ bar }}") == ("bar",)
+    assert c("foo {bar} spam {{eggs}}") == ("bar", "eggs")
+    assert c("foo {{bar} spam {eggs}}") == ("bar", "eggs")
+    assert c("foo { bar.spam }") == ("bar.spam",)
 
 
 @pytest.mark.parametrize(
@@ -54,6 +86,60 @@ def test_parse_token_symbols_raises():
 
     with pytest.raises(TokenError):
         parse_token_symbols("@int @unknown data")
+
+
+@pytest.mark.parametrize(
+    "data",
+    (
+        pytest.param("Hello this.foo", id="no-deps"),
+        pytest.param("Hello { this.foo }", id="one-value-single-curly"),
+        pytest.param("Hello {{ this.foo }}", id="one-value-double-curly"),
+        pytest.param("Hello { this.foo } { this.bar }", id="two-values-single-curly"),
+        pytest.param(
+            "Hello {{ this.foo }} {{ this.bar }}", id="two-values-double-curly"
+        ),
+    ),
+)
+def test_template_dependencies_in_context_is_true(data):
+    """
+    When context contains data dependencies: {{ dep }} or { dep }
+    Should return True
+    """
+    context = {("this", "foo"): 123, ("this", "bar"): [1, 2, 3]}
+    assert template_dependencies_in_context(data, context) is True
+
+
+def test_template_dependencies_in_context_is_false():
+    """
+    When context does not contain data dependencies: {{ dep }} or { dep }
+    Should return False
+    """
+    fn = template_dependencies_in_context
+    context = {("this", "foo"): 123, ("this", "bar"): [1, 2, 3]}
+
+    assert fn("template {{ this.foobar }}", context) is False
+    assert fn("{ this.bars} template", context) is False
+
+
+@pytest.mark.parametrize(
+    "converter_name, input, output",
+    (
+        pytest.param("int", "123", 123, id="int"),
+        pytest.param("float", "12.3", 12.3, id="float"),
+        pytest.param("str", 123, "123", id="str"),
+        pytest.param("bool", "true", True, id="bool-true-lower"),
+        pytest.param("bool", "TrUe", True, id="bool-true-mixed"),
+        pytest.param("bool", "False", False, id="bool-false-lower"),
+        pytest.param("bool", "bar", False, id="bool-false-random"),
+    ),
+)
+def test_builtin_converters_without_template_variables(converter_name, input, output):
+    """
+    Should apply converter correctly
+    """
+    converter = get_converter(converter_name)
+    result = converter(input, {})
+    assert result == output
 
 
 def test_apply_converter_chain():

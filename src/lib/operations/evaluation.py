@@ -3,18 +3,15 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
 from lib.core.nodes import NodeId
 from lib.core.tree import LeafNode, PathNode
-from lib.shared.types import AllTypes, NodeType
+from lib.shared.exceptions import LazyValueFound
+from lib.shared.types import AllTypes, NodeType, SimpleTypes, TreePath
 
 
 class InvalidTokenError(Exception):
-    pass
-
-
-class LazyValueFound(Exception):
     pass
 
 
@@ -140,28 +137,91 @@ def parse_token_symbols(raw_data: str) -> tuple[list[Converter], str]:
     return converters, data_part
 
 
-def apply_converter_chain(converter_chain: list[Converter], data: str):
+def get_template_variables(string: str):
     """
-    Process data with chain of converters
+    Get cleaned template variables from text surrounded by
+    single or double curly braces.
+
+    Examples:
+        >>> string = "foo { some.variable } bar {{ another.variable }}"
+        >>> get_template_variables(string)
+        ("some.variable", "another.variable")
+    """
+    pattern = r"(\{[\w\d\s\.]*\}|\{\{[\w\d\s\.]*\}\})"
+    result = re.findall(pattern, string)
+    for i, e in enumerate(result):
+        result[i] = re.sub(r"[\{|\}]{1,3}", "", e).strip()
+    return tuple(result)
+
+
+def convert_dot_notation_to_tree_path(string: str):
+    """
+    Converts dot notation string to TreePath object.
+    """
+    return tuple(string.split("."))
+
+
+def template_dependencies_in_context(
+    template_string: str, context: dict[tuple[str, ...], str]
+):
+    """
+    Checks if template dependencies (text surrounded by single/double curly braces)
+    are present in the context, or if there are no dependencies.
+
+    Examples:
+        >>> context = {("this", "value"): "world"}
+        >>> template_dependencies_in_context("hello { this.value }", context)
+        True
+        >>> template_dependencies_in_context("hello { this.falsy }", context)
+        False
+    """
+    dependencies = get_template_variables(template_string)
+    dependencies = [convert_dot_notation_to_tree_path(e) for e in dependencies]
+    try:
+        for dep in dependencies:
+            context[dep]
+        return True
+    except KeyError:
+        return False
+
+
+class DependecyStore:
+    """
+    Data structure responsible for storing and retrieving dependencies in the correct order
+    """
+
+    def get_context(self):
+        """
+        Return the actual context, that is, the currently evaluated dependencies.
+        """
+        pass
+
+
+ContextType = dict[TreePath, SimpleTypes]
+
+
+def apply_converter_chain(
+    converter_chain: list[Converter], data: str, context: ContextType
+):
+    """
+    Process data with chain of converters.
+    If a Converter raises LazyValueFound, the process is stopped.
+
     Raises:
-        LazyValueFound: if data have dependencies or is marked as lazy
-    TODO:
-        Implement lazy detection:
-            when there is interpolation values (dependencies)
-            when data is marked as lazy
+        LazyValueFound: when
+            - template value is not found in context
+            - lazy converter is present
     """
-    for converter in converter_chain:
-        data = converter(data)
+    try:
+        for converter in converter_chain:
+            data = converter(data, context)
+    except LazyValueFound:
+        raise
+
     return data
 
 
-def cast_to_python_type(data, converter: Converter):
-    """
-    Cast a string to the proper python type, according to the given token.
-    """
-
-
-def validate_token(self, token_str: str):
+def validate_token(token_str: str):
     """
     Token seting must:
         be string
@@ -188,17 +248,18 @@ class Converter:
     """
 
     name: str
-    converter: Callable[[str], Any]
+    converter: Callable[[str, ContextType], Any]
+    description: str = ""
 
-    def __call__(self, value):
+    def __call__(self, value, context: ContextType):
         """
         Call to evaluate value
         """
-        return self.convert(value)
+        return self.convert(value, context)
 
-    def convert(self, value):
+    def convert(self, value, context: ContextType):
         # catch errors to provide better err msg?
-        value = self.converter(value)
+        value = self.converter(value, context)
         return value
 
 
@@ -219,14 +280,21 @@ def get_converter(name: str):
     return converters[name]
 
 
+def bool_converter(data: str, context: ContextType):
+    true_values = ("t", "true", "enabled", "1", "on", "yes", "True")
+    return data.lower() in true_values
+
+
 converters = {
-    "int": Converter("int", int),
-    "float": Converter("float", float),
-    "bool": Converter("bool", bool),
-    "json": Converter("json", json.loads),
-    "none": Converter("none", lambda x: None),
-    "format": Converter("format", lambda x: x),
-    "jinja": Converter("jinja", lambda x: x),
+    "str": Converter("str", lambda x, ctx: str(x)),
+    "int": Converter("int", lambda x, ctx: int(x)),
+    "float": Converter("float", lambda x, ctx: float(x)),
+    "bool": Converter("bool", bool_converter),
+    "json": Converter("json", lambda x, ctx: json.loads(x)),
+    "none": Converter("none", lambda x, ctx: None),
+    "format": Converter("format", lambda x, ctx: x),
+    "jinja": Converter("jinja", lambda x, ctx: x),
+    "lazy": Converter("lazy", lambda x, ctx: x, description="lazy marker"),
 }
 
 
