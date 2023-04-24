@@ -1,0 +1,2 @@
+class LazyValueFound(Exception):
+    pass
