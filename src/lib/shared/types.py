@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING, Sequence, TypeAlias
 
 # cicular import workaround
 if TYPE_CHECKING:
-    from lib.core.nodes import BaseNode, LeafNode, PathNode
+    from lib.core.nodes import BaseNode, LeafNode, PathNode, NodeId
 else:
     # hack
     BaseNode = object
     LeafNode = object
     PathNode = object
+    NodeId = object
 
 # TODO make this the source of types, to try to avoid circular imports
 # BaseNode: TypeAlias = BaseNode
@@ -33,3 +34,5 @@ Children = None | Sequence[BaseNode]
 TreePath = tuple[str, ...]  # ("path", "to", "setting")
 
 NodeType: TypeAlias = LeafNode | PathNode
+
+ContextType = dict[str, SimpleTypes]

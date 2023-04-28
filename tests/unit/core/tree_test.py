@@ -2,7 +2,7 @@
 Test Tree API behaviour
 """
 
-from typing import Iterable
+from typing import Iterable, Callable
 
 import pytest
 

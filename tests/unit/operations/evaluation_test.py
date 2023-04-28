@@ -1,16 +1,18 @@
 import pytest
-from attr import converters
 
 from lib.core.tree import Tree
 from lib.operations.evaluation import (
-    TokenError,
-    convert_dot_notation_to_tree_path,
+    _apply_converter_chain,
+    _parse_token_symbols,
     evaluate_subtree,
     get_converter,
-    get_template_variables,
-    parse_token_symbols,
-    template_dependencies_in_context,
     tree_to_dict,
+)
+from lib.shared.exceptions import TokenError
+from lib.shared.utils import (
+    convert_dot_notation_to_tree_path,
+    get_template_variables,
+    template_dependencies_in_context,
 )
 
 # from lib.operations.evaluation import evaluate_subtree
@@ -72,7 +74,7 @@ def test_parse_token_symbols(raw_data, expected):
     "@mytoken data" -> ([mytoken-transformer], 'data')
     "@int @mytoken data" -> ([int-transformer, mytoken-transformer], 'data')
     """
-    converter_stack, data = parse_token_symbols(raw_data)
+    converter_stack, data = _parse_token_symbols(raw_data)
     assert converter_stack == expected[0]
     assert data == expected[1]
 
@@ -82,10 +84,10 @@ def test_parse_token_symbols_raises():
     Should raise on invalid tokens
     """
     with pytest.raises(TokenError):
-        parse_token_symbols("@unknown data")
+        _parse_token_symbols("@unknown data")
 
     with pytest.raises(TokenError):
-        parse_token_symbols("@int @unknown data")
+        _parse_token_symbols("@int @unknown data")
 
 
 @pytest.mark.parametrize(
@@ -142,15 +144,90 @@ def test_builtin_converters_without_template_variables(converter_name, input, ou
     assert result == output
 
 
-def test_apply_converter_chain():
+@pytest.mark.parametrize(
+    "converter_name, input, output",
+    (
+        pytest.param("format", "hello {value}", "hello world", id="format-one"),
+        pytest.param(
+            "format", "hello {value} ({foo.bar})", "hello world (123)", id="format-two"
+        ),
+        pytest.param("jinja", "hello {{ value }}", "hello world", id="jinja-one"),
+        # pytest.param("format", "12.3", 12.3, id="float"),
+        # pytest.param("jinja", 123, "123", id="str"),
+        # pytest.param("jinja", 123, "123", id="str"),
+    ),
+)
+def test_builtin_formatters_with_template_variables_in_context(
+    converter_name, input, output
+):
+    context = {"value": "world", "foo": {"bar": 123}}
+
+    converter = get_converter(converter_name)
+    result = converter(input, context)
+    assert result == output
+
+
+def test_builtin_formatters_with_template_variables_not_in_context():
+    pass
+
+
+@pytest.mark.parametrize(
+    "converters, input, output",
+    (
+        pytest.param(("int",), "123", 123, id="int"),
+        pytest.param(("int", "str"), "12", "12", id="int-str"),
+        pytest.param(("float", "int"), "12.3", 12, id="float-int"),
+        pytest.param(("int", "float"), "12", 12.0, id="int-float"),
+    ),
+)
+def test_apply_converter_chain_without_template_variables(converters, input, output):
     """
-    Should apply a chain of converters to data when there are no dependencies
+    When
+        not using formatters @jinja and @format
+    Should apply converters ()
+    """
+    converters = [get_converter(e) for e in converters]
+    result = _apply_converter_chain(converters, input, context={})
+    assert result == output
+
+
+@pytest.mark.parametrize(
+    "converters, input, output",
+    (
+        pytest.param(("int",), "123", 123, id="int"),
+        pytest.param(("int", "str"), "12", "12", id="int-str"),
+        pytest.param(("float", "int"), "12.3", 12, id="float-int"),
+        pytest.param(("int", "float"), "12", 12.0, id="int-float"),
+    ),
+)
+def test_apply_converter_chain_with_template_variables_in_context(
+    converters, input, output
+):
+    """
+    When
+        using formatters @jinja and @format
+        template variables are in context
+    Should substitute variables variables correctly
     """
 
 
-def test_apply_converter_chain_raises():
+@pytest.mark.parametrize(
+    "converters, input, output",
+    (
+        pytest.param(("int",), "123", 123, id="int"),
+        pytest.param(("int", "str"), "12", "12", id="int-str"),
+        pytest.param(("float", "int"), "12.3", 12, id="float-int"),
+        pytest.param(("int", "float"), "12", 12.0, id="int-float"),
+    ),
+)
+def test_apply_converter_chain_with_template_variables_not_in_context(
+    converters, input, output
+):
     """
-    Should raise LazyValueFound when a lazy value is found
+    When
+        using formatters @jinja and @format
+        template variables are not in context
+    Should raise LazyValueFound
     """
 
 
