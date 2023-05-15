@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import jinja2
 
 from typing import Callable, Any
-from lib.shared.utils import convert_dot_notation_to_tree_path
+from lib.shared.utils import convert_dot_notation_to_tree_path, get_template_variables
 from lib.shared.exceptions import LazyValueFound, TokenError
 from lib.shared.types import ContextType
 
@@ -26,8 +26,8 @@ def jinja_formatter(value: str, context: dict):
 
 def python_formatter(value: str, context: dict):
     try:
-        # pre-format value
-        # convert_dot_notation_to_tree_path()
+        # pre-format context to use SimpleNamespaces
+        # context = dict_to_simple_namespace(context)
         return value.format(**context)
     except KeyError:
         raise LazyValueFound(

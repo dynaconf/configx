@@ -149,7 +149,7 @@ def test_builtin_converters_without_template_variables(converter_name, input, ou
     (
         pytest.param("format", "hello {value}", "hello world", id="format-one"),
         pytest.param(
-            "format", "hello {value} ({foo.bar})", "hello world (123)", id="format-two"
+            "format", "hello {foo.bar}", "hello 123", id="format-nested"
         ),
         pytest.param("jinja", "hello {{ value }}", "hello world", id="jinja-one"),
         # pytest.param("format", "12.3", 12.3, id="float"),

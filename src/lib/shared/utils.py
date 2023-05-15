@@ -1,4 +1,5 @@
 import re
+from types import SimpleNamespace
 
 from lib.shared.types import CompoundTypes, TreePath
 
@@ -82,3 +83,25 @@ def template_dependencies_in_context(
         return True
     except KeyError:
         return False
+
+
+def dict_to_simple_namespace(data: dict):
+    """
+    Transforms a dict into a SimpleNamespace object with dot notation access.
+    """
+    obj = SimpleNamespace()
+    _dict_to_simple_namespace(data, obj)
+    return obj
+
+
+# TODO implement this
+def _dict_to_simple_namespace(data: dict, obj: SimpleNamespace, path: str = ""):
+    """
+    Recursive function to add dict entries as SimpleNamespaces into obj.
+    """
+    if isinstance(data, dict):
+        for k, v in data.items():
+            obj.__setattr__(k, v)
+            if isinstance(v, dict):
+                _dict_to_simple_namespace(v, obj)
+    return data
