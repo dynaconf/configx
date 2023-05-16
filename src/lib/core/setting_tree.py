@@ -1,17 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from lib.shared.types import TreePath
+from lib.shared.types import SimpleTypes, TreePath
 from typing import Any
 
 
 def main():
     st = SettingTree()
     st.add_setting(Setting(("foo", "bar", "spam"), "eggs"))
-    st.add_setting(Setting(("foo", "bar", "number"), 123))
-    st.add_setting(Setting(("foo", "bar", "thing"), "value"))
     st.show_map()
-    st.show_tree()
-    print()
+    print(st.get_setting(("foo", "bar", "spam")))
 
 
 ### Tree
@@ -20,22 +17,52 @@ def main():
 @dataclass
 class Setting:
     path: TreePath
-    raw_value: str
-    real_value: Any | None = None
+    raw_value: SimpleTypes | Node
+    real_value: Any = None
     is_leaf: bool = True
+
+    @property
+    def _is_leaf(self):
+        return isinstance(self.raw_value, Node)
 
 
 @dataclass
 class Node:
     element: Setting
     parent: Node
-    children: list[Node] = field(default_factory=list)
+    _children: list[Node] = field(default_factory=list)
+
+    def get_child(self, child: Node | TreePath, default: Node | None = None) -> Node:
+        """
+        Get immediate child of self (not recursive)
+        """
+        path = to_tree_path(child)
+        result = [n for n in self.children if n.path == path]
+        if not result:
+            raise NodeNotFound(f"Child is not found in node: {self}")
+        return result[0]
+
+    def find_child(self, child: Node | TreePath, default: Node | None = None) -> Node:
+        """
+        Find child resursively
+        """
+        path = to_tree_path(child)
+        ...
+
+    def add_child(self, child: Node, overwrite=True):
+        """
+        Adds child to node.
+        """
 
     @property
     def path(self):
         return self.element.path
 
-    def __str__(self):
+    @property
+    def children(self):
+        return self._children
+
+    def __repr__(self):
         return "Node(parent={}, child_count={}, setting={})".format(
             repr(self.parent.element.path[-1]),
             len(self.children),
@@ -43,7 +70,19 @@ class Node:
         )
 
 
+def to_tree_path(path_or_node: TreePath | Node) -> TreePath:
+    """
+    Convenience: gets TreePath from node or bypasses if already TreePath
+    """
+    n = path_or_node
+    return n if isinstance(n, tuple) else n.path
+
+
 class SettingNotFound(Exception):
+    pass
+
+
+class NodeNotFound(Exception):
     pass
 
 
@@ -59,18 +98,29 @@ TreeMap = dict[TreePath, Node]
 
 
 class SettingTree:
-    def __init__(self, env: str = "default"):
+    def __init__(self, env: str = "default", src: str = "memory"):
         self.root = Node(Setting(("root",), ""), None)  # type: ignore
         self.root.parent = self.root
         self.tree_map: TreeMap = {self.root.path: self.root}
         self.env = env
+        self.src = src
 
-    def add_dict(self, data: dict):
+    def load_dict(self, data: dict):
+        """
+        Load dictonary as Setting instances to Tree
+        """
         ...
+
+    def create_setting(self, path: TreePath, raw_value: SimpleTypes) -> Node:
+        """
+        Create and add setting using @path and @raw_value
+        """
+        return self.add_setting(Setting(path, raw_value))
 
     def add_setting(self, setting: Setting) -> Node:
         """
-        Add @setting and creates intermediary settings if necessary
+        Add @setting and creates intermediary settings if necessary.
+        Returns created node
         """
         path = setting.path
         new_node = self._add_setting(setting)
@@ -78,18 +128,19 @@ class SettingTree:
         # create non-leaf setting, if does not exit yet
         for i in range(1, len(path)):
             if not self.setting_exist(path[:i]):
-                self._add_setting(Setting(path[:i], "", is_leaf=False))
+                n = self._add_setting(Setting(path[:i], "", is_leaf=False))
         return new_node
 
     def _add_setting(self, setting: Setting) -> Node:
         """
-        Add a single setting
+        Add a single setting using setting path definition
         """
         path = setting.path
         try:
             parent = self._get_node(path[:-1])
         except SettingNotFound:
             parent = self._add_setting(Setting(path[:-1], "", is_leaf=False))
+            parent.element.raw_value = parent
         except EmptyTreePath:
             parent = self.root
 
