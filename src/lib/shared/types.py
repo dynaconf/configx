@@ -31,7 +31,7 @@ Environment = str  # should be class
 DataSource = str  # should be class
 
 Children = None | Sequence[BaseNode]
-TreePath = tuple[str, ...]  # ("path", "to", "setting")
+TreePath = tuple[str | int, ...]  # ("path", "to", "setting")
 
 NodeType: TypeAlias = LeafNode | PathNode
 

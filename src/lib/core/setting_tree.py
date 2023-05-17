@@ -1,7 +1,11 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from lib.shared.types import SimpleTypes, TreePath
+from sys import exception
 from typing import Any
+
+from lib.shared.types import AllTypes, CompoundTypes, SimpleTypes, TreePath
+from lib.shared.utils import normalize_compound_type
 
 
 def main():
@@ -17,13 +21,12 @@ def main():
 @dataclass
 class Setting:
     path: TreePath
-    raw_value: SimpleTypes | Node
+    raw_value: SimpleTypes | CompoundTypes
     real_value: Any = None
-    is_leaf: bool = True
 
     @property
-    def _is_leaf(self):
-        return isinstance(self.raw_value, Node)
+    def is_leaf(self):
+        return isinstance(type(self.raw_value), CompoundTypes)
 
 
 @dataclass
@@ -38,9 +41,12 @@ class Node:
         """
         path = to_tree_path(child)
         result = [n for n in self.children if n.path == path]
-        if not result:
+        if result:
+            return result[0]
+
+        if default is None:
             raise NodeNotFound(f"Child is not found in node: {self}")
-        return result[0]
+        return default
 
     def find_child(self, child: Node | TreePath, default: Node | None = None) -> Node:
         """
@@ -49,24 +55,42 @@ class Node:
         path = to_tree_path(child)
         ...
 
+    def child_exist(self, child: Node | TreePath) -> bool:
+        try:
+            self.get_child(child)
+            return True
+        except NodeNotFound:
+            return False
+
     def add_child(self, child: Node, overwrite=True):
         """
         Adds child to node.
         """
+        if self.child_exist(child):
+            raise ChildAlreadyExist(f"Child already exist: {repr(child.name)}")
+        self._children.append(child)
+
+    @property
+    def is_leaf(self) -> bool:
+        return self.element.is_leaf
 
     @property
     def path(self):
         return self.element.path
 
     @property
+    def name(self):
+        """Printable name"""
+        return ".".join([str(v) for v in self.element.path])
+
+    @property
     def children(self):
         return self._children
 
     def __repr__(self):
-        return "Node(parent={}, child_count={}, setting={})".format(
-            repr(self.parent.element.path[-1]),
-            len(self.children),
+        return "Node({}, child_count={})".format(
             repr(self.element),
+            len(self.children),
         )
 
 
@@ -90,6 +114,10 @@ class EmptyTreePath(Exception):
     pass
 
 
+class ChildAlreadyExist(Exception):
+    pass
+
+
 class EMTPY:
     pass
 
@@ -101,104 +129,150 @@ class SettingTree:
     def __init__(self, env: str = "default", src: str = "memory"):
         self.root = Node(Setting(("root",), ""), None)  # type: ignore
         self.root.parent = self.root
-        self.tree_map: TreeMap = {self.root.path: self.root}
+        # TODO: add optional populate on init: ST( dict | Node, ... )
+
+        # TODO: setup cache system (can be posponed)
+        self._internal_cache: TreeMap = {self.root.path: self.root}
+        self._user_cache: dict[TreePath, dict[str, AllTypes]] | None = None
+
         self.env = env
         self.src = src
 
-    def load_dict(self, data: dict):
+    def populate(
+        self,
+        py_data: dict[str, SimpleTypes | CompoundTypes],
+        basenode: Node | None = None,
+    ):
         """
-        Load dictonary as Setting instances to Tree
+        Create Nodes recursively from data structured as dict.
+        Used for fresh populate and does not support merging.
+
+        Example:
+            >>> data = {"foo": "bar", "compound": ["a", True, 123]}
+            >>> st = SettingTree(data)
+            >>> st.show_tree()
+            "root":
+                "foo": "bar"
+                "compound":
+                    0: "a"
+                    1: True
+                    2: 123
         """
+        # get parent where nodes will be appended
+        basenode = basenode or self.root
+        rooted_path = basenode.path
+
+        # use py_data [key, values] as Setting(path, raw_value)
+        for k, v in py_data.items():
+            new_path = rooted_path + (k,)
+            self._populate(new_path, v, basenode)
+        return basenode
+
+    def _populate(
+        self, path: TreePath, raw_value: SimpleTypes | CompoundTypes, parent: Node
+    ):
+        """
+        Resursively create Node/Setting from python objects
+        """
+        # basecase: leaf-node
+        if isinstance(raw_value, SimpleTypes):
+            n = Node(Setting(path, raw_value), parent)
+            parent.add_child(n)
+            self._internal_cache[n.path] = n
+            return n
+
+        # general case: non-leaf node
+
+        if isinstance(raw_value, list):
+            non_leaf_sentinel = []
+            non_leaf_iterator = lambda x: enumerate(x)
+        elif isinstance(raw_value, dict):
+            non_leaf_sentinel = {}
+            non_leaf_iterator = lambda x: x.items()
+        else:
+            raise TypeError("`py_data` should be list or dict")
+
+        s = Setting(path, non_leaf_sentinel)
+        n = Node(s, parent)
+        parent.add_child(n)
+        self._internal_cache[n.path] = n
+
+        for k, v in non_leaf_iterator(raw_value):
+            new_path = path + (k,)
+            self._populate(new_path, v, n)
+        return n
+
+    def create_node(
+        self,
+        key: str | int,
+        raw_value: SimpleTypes | CompoundTypes,
+        parent: Node | None = None,
+    ) -> Node:
+        """Create and add node to key"""
         ...
 
-    def create_setting(self, path: TreePath, raw_value: SimpleTypes) -> Node:
-        """
-        Create and add setting using @path and @raw_value
-        """
-        return self.add_setting(Setting(path, raw_value))
+    def replace_node(self, new_setting: Setting, node_path: TreePath) -> Node:
+        ...
 
-    def add_setting(self, setting: Setting) -> Node:
-        """
-        Add @setting and creates intermediary settings if necessary.
-        Returns created node
-        """
-        path = setting.path
-        new_node = self._add_setting(setting)
+    def remove_node(self, new_setting: Setting, node_path: TreePath) -> Node:
+        ...
 
-        # create non-leaf setting, if does not exit yet
-        for i in range(1, len(path)):
-            if not self.setting_exist(path[:i]):
-                n = self._add_setting(Setting(path[:i], "", is_leaf=False))
-        return new_node
+    def get_setting(self, path: TreePath) -> Setting:
+        return self._get_node(path).element
 
-    def _add_setting(self, setting: Setting) -> Node:
-        """
-        Add a single setting using setting path definition
-        """
-        path = setting.path
+    def node_exist(self, path: TreePath) -> bool:
         try:
-            parent = self._get_node(path[:-1])
-        except SettingNotFound:
-            parent = self._add_setting(Setting(path[:-1], "", is_leaf=False))
-            parent.element.raw_value = parent
-        except EmptyTreePath:
-            parent = self.root
-
-        new_node = Node(setting, parent)
-        if path not in self.tree_map:
-            parent.children.append(new_node)
-        self.tree_map[new_node.path] = new_node
-        return new_node
-
-    # def replace_node(self, new_setting: Setting, node_path: TreePath) -> Node:
-    #     node = self.get_node(node_path)
-    #     node.element = new_setting
-    #     return node
-
-    def remove_setting(self, path: TreePath) -> Node:
-        node = self._get_node(path)
-        node.parent.children.remove(node)
-        del self.tree_map[path]
-        return node
-
-    def get_setting(self, path: TreePath, default: Node | None = None) -> Setting:
-        node = self._get_node(path, default)
-        return node.element
-
-    def _get_node(self, path: TreePath, default: Node | None = None) -> Node:
-        if len(path) == 0:
-            raise EmptyTreePath
-        try:
-            return self.tree_map[path]
-        except KeyError:
-            if default is None:
-                raise SettingNotFound(f"Setting not found for path: {path}")
-            return default
-
-    def setting_exist(self, setting_path: TreePath) -> bool:
-        try:
-            self.get_setting(setting_path)
+            self._get_node(path)
             return True
-        except SettingNotFound:
+        except NodeNotFound:
             return False
 
+    def _get_node(self, rootless_path: TreePath, default: Node | None = None) -> Node:
+        if len(rootless_path) == 0:
+            raise EmptyTreePath
+
+        rooted_path = self.root.path + rootless_path
+        try:
+            return self._internal_cache[rooted_path]
+        except KeyError:
+            if default is None:
+                raise NodeNotFound(f"Node not found for path: {rooted_path}")
+            return default
+
+    # def _get_parent_from_tree_path(self, path: TreePath) -> Node:
+    #     try:
+    #         parent = self._get_node(path[:-1])
+    #     except SettingNotFound:
+    #         parent = self._add_setting(Setting(path[:-1], "", is_leaf=False))
+    #         parent.element.raw_value = parent
+    #     except EmptyTreePath:
+    #         parent = self.root
+    #     return parent
+
+    def _setting_exist(self, setting_path: TreePath) -> bool:
+        return setting_path in self._internal_cache
+
     def show_map(self):
-        for k, v in self.tree_map.items():
+        for k, v in self._internal_cache.items():
             print(k, v.element)
 
     def show_tree(self, debug: bool = False):
+        """Print formatted tree representation"""
         self._show_tree(self.root, debug=debug)
 
     def _show_tree(self, node: Node, depth: int = 0, debug=False):
+        """
+        Recursively prints tree nodes
+        """
         spacing = "  " * depth
-        setting_name = node.element.path[-1]
-        setting_value = node.element.raw_value if not debug else node
+        setting_name = repr(node.element.path[-1])
+        setting_value = repr(node.element.raw_value) if not debug else node
         print("{}{}: {}".format(spacing, setting_name, setting_value))
         for n in node.children:
             self._show_tree(n, depth + 1, debug)
 
     def __len__(self):
-        return len(self.tree_map)
+        return len(self._internal_cache) - 1
 
 
 if __name__ == "__main__":
