@@ -1,207 +1,93 @@
+"""
+Evalution module.
+Responsible for manipulating Setting inside SettingNodes
+
+Example:
+    >>> import evaluate
+    >>> import SettingTree as ST
+
+    >>> data = {
+            "cast": "@int 123",
+            "sub": "@format **{this.a}-{this.foo.b}**",
+            "a": "hello",
+            "foo": {"b": "world"}
+        }
+    >>> st = ST(data)
+    >>> evalution.evaluate_tree(
+            setting_tree=st,
+            dynaconfig_tree=ST(),
+        )
+
+    >>> st.show_tree()
+    "root": <dict>
+        "cast": 123
+        "sub": "**hello-world**"
+        "a": "hello"
+        "foo": <dict>
+            "b": "world"
+"""
 from __future__ import annotations
 
-import re
-from dataclasses import dataclass
 from typing import Sequence
 
-from lib.core.tree import LeafNode, PathNode
-from lib.operations.converters import Converter, get_converter
-from lib.shared.exceptions import LazyValueFound
-from lib.shared.types import AllTypes, ContextType, NodeId, NodeType
+from lib.core.setting_tree import Node, SettingTree, TreePath
 
 
-def tree_to_dict(node: NodeType, pre_evaluate=False) -> AllTypes | None:
+def evaluate(setting_tree: SettingTree, dynaconfig_tree: SettingTree):
+    ...
+
+
+def pre_evaluate_tree():
+    ...
+
+
+def pre_evaluate_node(node: Node) -> DependencyGraph:
     """
-    Converts a tree to python structure (list and dicts).
+    Pre-evaluates nodes:
+    - normalize lazy_string
+        before: setting.raw_value = "@int 123"
+        after:  setting.raw_value(int_parser, "123")
 
-    By default, it will not try to evaluate tokens.
+        before: setting.raw_value = "@format {this.name}"
+        after:  setting.raw_value = "@format {this['name']}" (easier to use)
 
-    Args:
-        node: the root node of the subtree to be converted
-        pre_evaluate: should evaluate tree before conversion?
+    - apply parser function (with no dependencies):
+        before:
+            setting.raw_value = (int_parser, "123")
+            setting.real_value = None
+        after:
+            setting.raw_value = (int_parser, "123")
+            setting.real_value = 123 <type int>
 
-    Raises:
-        ???
+    - analyze substitution dependencies:
+        with:
+            setting.raw_value = (format_parser, "hello {this.name}")
+        if:
+            if ("name",) is not evaluated yet (not in setting.real_value)
+        do:
+            edge = (setting.path, ("name",)) # directed edge
+            return DependecyGraph().add(edge)
     """
-    if pre_evaluate:
-        evaluate_subtree(node)
-    return _tree_to_dict(node)
+    ...
 
 
-def _tree_to_dict(node: NodeType) -> AllTypes | None:
-    if isinstance(node, LeafNode):
-        return node.setting.raw_data
-    elif isinstance(node, PathNode):
-        data = None
-        if node.type is dict:
-            data = {}
-            for child in node.children:
-                data.update({child.name: _tree_to_dict(child)})
-        elif node.type is list:
-            data = []
-            for child in node.children:
-                data.append(_tree_to_dict(child))
-        return data
+class NOT_EVALUATED:
+    pass
 
 
-def evaluate_subtree(node: NodeType) -> AllTypes | None:
+class DependencyGraph:
     """
-    Evaluates a subtree recursively by mutating it's nodes `evaluated_value` property.
-
-    It performs the following transformations:
-        - Values that don't require evalution are bypassed (int, dict, float, etc)
-        - Transformations without dependencies are evaluated in the first pass
-        - Transformations with dependencies are collected in first pass and
-          evaluated in a second pass
-
-    Args:
-        node: PathNode or LeafNode object
-
-    Notes:
-        - Not sure if should or not mutate. I guess mutating will do no harm here.
-
-    """
-    lazy_processor = LazyProcessor()
-    _evaluate_first_pass(node, lazy_processor)
-    # lazy_processor.evaluate_dependencies()
-    return
-
-
-def _evaluate_first_pass(
-    node: NodeType, lazy_processor: LazyProcessor
-) -> AllTypes | None:
-    """
-    Evaluate raw types and Tokens with no dependencies into nodes
-    and adds lazy values to lazy_processor (by mutatation)
-
-    Notes:
-        - This would be more elegant with match case, but this would
-          break compatipability with python<3.10
-
-    TODO:
-        Make this mutate nodes instead of rendering dict/lists
-        Add new proper tests for this
-    """
-    if isinstance(node, LeafNode):
-        data = node.setting.raw_data
-        node_id = node.identifier
-        if isinstance(data, str):
-            converters, raw = _parse_token_symbols(data)
-            try:
-                data = _apply_converter_chain(converters, raw, {})
-            except LazyValueFound:
-                lazy_value = LazyValue(node_id, raw, converters)
-                lazy_processor.add(lazy_value)
-
-        return data
-    elif isinstance(node, PathNode):
-        data = None
-        if node.type is dict:
-            data = {}
-            for child in node.children:
-                data.update({child.name: _evaluate_first_pass(child, lazy_processor)})
-        elif node.type is list:
-            data = []
-            for child in node.children:
-                data.append(_evaluate_first_pass(child, lazy_processor))
-        return data
-
-
-def _parse_token_symbols(raw_data: str) -> tuple[list[Converter], str]:
-    """
-    Parse string with token symbols into a converters' chain and a raw data string
-
-    Examples:
-        >>> parse_token_symbols("@int 123")
-        ([int_converter], "123")
-
-        >>> parse_token_symbols("@int @format {{ this.interpolation}}")
-        ([int_converter, format_converter], "{{ this.interpolation}}")
-
-    Notes:
-        Should raise or bypass if there are not tokens?
-    """
-    tokens_part = re.match(r"(@\w*\s?)+", raw_data)
-    data_part = raw_data
-    converters = []
-
-    if tokens_part:
-        data_part = raw_data[tokens_part.end() :]
-        tokens = tokens_part.group().strip().split(" ")
-        converters = [get_converter(t) for t in tokens]
-    return converters, data_part
-
-
-def _apply_converter_chain(
-    converter_chain: Sequence[Converter], data: str, context: ContextType
-):
-    """
-    Process data with chain of converters from index 0 to n.
-    If a Converter raises LazyValueFound, the process is stopped.
-
-    Raises:
-        LazyValueFound: when
-            - template value is not found in context
-            - lazy converter is present
-    """
-    try:
-        for converter in converter_chain:
-            data = converter(data, context)
-    except LazyValueFound:
-        raise
-
-    return data
-
-
-# class DependecyStore:
-#     """
-#     Data structure responsible for storing and retrieving dependencies in the correct order
-#     """
-
-#     def get_context(self):
-#         """
-#         Return the actual context, that is, the currently evaluated dependencies.
-#         """
-#         pass
-
-
-@dataclass
-class LazyValue:
-    """
-    Object that holds relevant data to evaluate itself
+    Dependecy Graph.
+    Responsible ordering/validating dependencies and returning
+    nodes in proper order.
     """
 
-    id: NodeId
-    raw: str
-    converters: list[Converter]
-    dependencies: list[str] | None = None
+    def add(self, node: Node, dependents: Sequence[TreePath]):
+        """Add node dependency"""
 
+    def dequeue(self) -> Node:
+        """Return the next node"""
+        ...
 
-class LazyProcessor:
-    """
-    Responsible for collecting LazyValues, analysing and storing their dependencies
-    and evaluating them in the correct order.
-
-    Examples: TODO
-        >>> l = LazyProcessor()
-        >>> l.add(LazyValue(""))
-        >>> l.add(LazyValue(""))
-        >>> l.add(LazyValue(""))
-    """
-
-    def __init__(self):
-        self._conatainer = []
-
-    def add(self, lazy_value: LazyValue):
-        """
-        Adds a lazy_value to the internal data structure.
-
-        TODO implement properly, first with queue
-        (which should be easier than graph)
-        """
-        self._conatainer.append(lazy_value)
-
-    def evaluate_dependencies(self):
-        """
-        Evaluate lazy values in the proper order
-        """
+    def __len__(self):
+        return 0

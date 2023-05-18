@@ -182,7 +182,7 @@ class SettingTree:
             return n
 
         # general case: non-leaf node
-
+        # TODO: use list and dict sentinels {DICT, LIST} -> type(LIST)=list
         if isinstance(raw_value, list):
             non_leaf_sentinel = []
             non_leaf_iterator = lambda x: enumerate(x)
