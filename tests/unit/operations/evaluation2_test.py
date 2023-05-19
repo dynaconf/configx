@@ -101,3 +101,23 @@ def test_pre_evaluate_node():
     assert node.element.raw_value == expected_raw
     assert node.element.real_value == expected_real
     assert len(d) == expected_d_len
+
+
+# TODO add testcases for failure
+def test_pre_evaluate_node_raises():
+    input = "hello"
+    expected_raw = ""
+    expected_real = None
+    expected_d_len = 0
+
+    st = SettingTree()
+    data = {"value": input}
+    st.populate(data)  # type: ignore (why?)
+
+    node = st._get_node(("value",))
+
+    d = pre_evaluate_node(node)
+
+    assert node.element.raw_value == expected_raw
+    assert node.element.real_value == expected_real
+    assert len(d) == expected_d_len
