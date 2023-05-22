@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from lib.core.setting_tree import Node, SettingTree, TreePath
+from configx.core.setting_tree import Node, SettingTree, TreePath
 
 
 def evaluate(setting_tree: SettingTree, dynaconfig_tree: SettingTree):

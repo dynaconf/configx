@@ -4,13 +4,17 @@ import re
 from dataclasses import dataclass
 from typing import Sequence
 
-from lib.core.tree import LeafNode, PathNode
-from lib.operations.converters import Converter, get_converter
-from lib.shared.exceptions import LazyValueFound
-from lib.shared.types import AllTypes, ContextType, NodeId, NodeType
+from configx.core.setting_tree import Setting, SettingTree
+from configx.exceptions import LazyValueFound
+from configx.operations.evaluation.converters import Converter, get_converter
+from configx.types import PrimitiveTypes, ContextType, NodeId, NodeType
 
 
-def tree_to_dict(node: NodeType, pre_evaluate=False) -> AllTypes | None:
+def evaluate():
+    pass
+
+
+def tree_to_dict(node: NodeType, pre_evaluate=False) -> PrimitiveTypes | None:
     """
     Converts a tree to python structure (list and dicts).
 
@@ -28,7 +32,7 @@ def tree_to_dict(node: NodeType, pre_evaluate=False) -> AllTypes | None:
     return _tree_to_dict(node)
 
 
-def _tree_to_dict(node: NodeType) -> AllTypes | None:
+def _tree_to_dict(node: NodeType) -> PrimitiveTypes | None:
     if isinstance(node, LeafNode):
         return node.setting.raw_data
     elif isinstance(node, PathNode):

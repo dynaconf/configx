@@ -5,21 +5,18 @@ essential operations over Setting objects consistently.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Iterable
 
-from dataclasses import dataclass
-from lib.core.nodes import LeafNode, PathNode, Setting
-from lib.shared.types import (
-    AllTypes,
+from configx.types import (
     CompoundTypes,
     DataSource,
     Environment,
-    NodeType,
     Raw,
     SimpleTypes,
     TreePath,
 )
-from lib.shared.utils import normalize_compound_type
+from configx.utils import normalize_compound_type
 
 
 class PathNotFoundError(Exception):

@@ -1,13 +1,13 @@
 from typing import Any, NamedTuple
 
-from lib.core.setting_tree import Node, SettingTree
-from lib.operations.converters import get_converter
-from lib.operations.evaluation import (
+from configx.core.setting_tree import Node, SettingTree
+from configx.operations.evaluation import (
     NOT_EVALUATED,
     pre_evaluate_node,
     pre_evaluate_tree,
 )
-from lib.shared.types import SimpleTypes
+from configx.operations.utils.converters import get_converter
+from configx.types import SimpleTypes
 
 
 class PreEvaluateExpected(NamedTuple):

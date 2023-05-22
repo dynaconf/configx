@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from lib.core.setting_tree import Node, SettingTree, TreePath
+from configx.core.setting_tree import Node, SettingTree, TreePath
 
 
 def main():

@@ -1,6 +1,6 @@
 import pytest
 
-from lib.core.setting_tree import ChildAlreadyExist, Setting, SettingTree
+from configx.core.setting_tree import ChildAlreadyExist, Setting, SettingTree
 
 # def test_create_setting():
 #     st = SettingTree()
@@ -43,8 +43,7 @@ def main():
     st = SettingTree()
     st.populate({"name": "foo", "bucket": []})
     st.populate({"name": "foo"}, basenode=st._get_node(("bucket",)))
-    n1 = st.create_node(("name",), "foo")
-    n2 = st.create_node(("name",), "foo", parent=n1)
+    st.show_tree()
 
 
 def test_populate_simple_types():

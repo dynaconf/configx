@@ -1,21 +1,21 @@
 import pytest
 
-from lib.core.tree import Tree
-from lib.operations.evaluation import (
+from configx.core.setting_tree import SettingTree
+from configx.operations.utils.evalaute_old import (
     _apply_converter_chain,
     _parse_token_symbols,
     evaluate_subtree,
-    get_converter,
     tree_to_dict,
 )
-from lib.shared.exceptions import TokenError
-from lib.shared.utils import (
+from configx.operations.utils.converters import get_converter
+from configx.exceptions import TokenError
+from configx.utils import (
     convert_dot_notation_to_tree_path,
     get_template_variables,
     template_dependencies_in_context,
 )
 
-# from lib.operations.evaluation import evaluate_subtree
+# from configx.operations.evaluation import evaluate_subtree
 
 
 def test_convert_dot_notation_to_tree_object():
@@ -239,7 +239,7 @@ def test_tree_to_dict_flat():
         tree has only raw types (bypass @tokens)
     Should return the correct python data structure
     """
-    t = Tree()
+    t = SettingTree()
     t.create_node("str_node", "value")
     t.create_node("int_node", 123)
     t.create_node("float_node", 1.23)
@@ -258,7 +258,7 @@ def test_tree_to_dict_nested():
         tree has only raw types
     Should return the correct python data structure
     """
-    t = Tree()
+    t = SettingTree()
     t.create_node(
         "nesting_a",
         {
