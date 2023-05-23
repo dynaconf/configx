@@ -2,7 +2,7 @@
 Module responsible for providing the final user interface for acessing data.
 Should support most of legacy Dynaconf (v3) setting-acess behaviour.
 
-Example:
+Examples:
     >>> data = {
             "name": "john",
             "info": {"age": 33, "married": True},
@@ -38,57 +38,56 @@ from configx.core.setting_tree import Node, SettingTree, TreePath
 
 
 def main():
+    """Sandbox usage"""
     setting = SettingShell()
     setting.get("foo.bar")
 
 
+# Sentinel for non-provided arguments
 MISSING: Any = object()
+
+## setting query
+# [x] 'get',
+# [x] 'exists',
+# [x] 'exists_in_environ',
+# [x] 'get_environ',
+
+# 'to_dict',
+# 'as_bool',
+# 'as_dict',
+# 'as_float',
+# 'as_int',
+# 'as_json',
+
+# 'fresh',
+# 'get_fresh',
+# 'from_env',
+
+# 'is_overridden',
+# 'path_for',
+# 'find_file',
+
+## setting-modifiers
+# 'populate_obj',
+# 'set',
+# 'setdefault',
+# 'setenv',
+# 'update',
+# 'unset',
+# 'unset_all',
+# 'pre_load',
+# 'reload',
+
+# 'execute_loaders',
+# 'load_extra_yaml',
+# 'load_file',
+# 'load_includes',
+
+# 'clean',
+# 'configure',
 
 
 class SettingShell:
-    """
-    # setting query
-    [x] 'get',
-    [x] 'exists',
-    [x] 'exists_in_environ',
-    [x] 'get_environ',
-
-    'to_dict',
-    'as_bool',
-    'as_dict',
-    'as_float',
-    'as_int',
-    'as_json',
-
-    'fresh',
-    'get_fresh',
-    'from_env',
-
-    'is_overridden',
-    'path_for',
-    'find_file',
-
-    # setting-modifiers
-    'populate_obj',
-    'set',
-    'setdefault',
-    'setenv',
-    'update',
-    'unset',
-    'unset_all',
-    'pre_load',
-    'reload',
-
-    'execute_loaders',
-    'load_extra_yaml',
-    'load_file',
-    'load_includes',
-
-    'clean',
-    'configure',
-
-    """
-
     def get(
         self,
         key: str,

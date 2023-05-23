@@ -1,8 +1,8 @@
-site_name: Dynacon from Sratch
+site_name: ConfigX
 
 nav:
-
   - Welcome:
+    - "home/index.md"
     - Overview: "home/index.md"
     - Getting Started: "home/getting-started.md"
     - FAQ: ""
@@ -32,6 +32,7 @@ nav:
         - Setup: ""
         - Using FastApi: ""
     - Reference:
+      - Setting Object: "user/reference/setting_object.md"
       - Validation: ""
       - Loaders: ""
       - Lazy Evaluation: ""
@@ -39,16 +40,18 @@ nav:
   - Development: 
     - "dev/index.md"
     - Understanding the system: 
+      - Overview: ""
       - Modules: ""
       - Data Flow: ""
       - Considerations: ""
     - Guides:
+      - Documentation: ""
       - Tooling: ""
       - Code Standards: ""
       - Git workflows: ""
       - Testing: ""
     - API Reference:
-      - Core: "dev/api/core.md"
+      - Public: "dev/api/lib_shell.md"
       - Operators: ""
       - I/O: ""
       - Services: ""
