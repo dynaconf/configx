@@ -3,10 +3,20 @@ Shared Types for the project
 """
 from __future__ import annotations
 
-import typing as t
+from typing import TYPE_CHECKING, Callable, NamedTuple, Sequence
 
-if t.TYPE_CHECKING:
+if TYPE_CHECKING:
     pass
+
+
+class LazyProcessor(NamedTuple):
+    operators: Sequence[Callable]
+    raw_value: str
+
+
+class DependencyEdge(NamedTuple):
+    dependent: TreePath
+    depends_on: TreePath
 
 
 SimpleTypes = int | str | float
