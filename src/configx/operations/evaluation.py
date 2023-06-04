@@ -28,19 +28,46 @@ Example:
 """
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Any, Generator, Sequence
 
 from configx.core.setting_tree import Node, SettingTree, TreePath
-from configx.types import DependencyEdge, LazyProcessor
+from configx.operations.raw_processors import ContextObject, build_context_from_tree, bypass_processor, placeholder_processor
+from configx.public.lib_shell import MISSING
+from configx.types import DependencyEdge, LazyProcessors, RawProcessor
 
 
-def evaluate(setting_tree: SettingTree, dynaconfig_tree: SettingTree):
+def evaluate(setting_tree: SettingTree, internal_config_tree: SettingTree):
     ...
+
+
+def evaluate_tree_dependencies(
+    setting_tree: SettingTree, dependency_graph: DependencyGraph
+) -> SettingTree:
+    """
+    Evaluate setting_tree dependencies only.
+    Assumes setting_tree is pre-evaluated.
+    """
+    dependency_graph._validate()  # treat invalid dependency relations
+    for path, dependencies in dependency_graph.items():
+        node = setting_tree._get_node(path)
+        context = build_context_from_tree(setting_tree, dependencies)
+
+        # should be pre-evaluated
+        assert isinstance(node.element.raw_value, LazyProcessors)
+        node.element.real_value = _apply_lazy_processor(
+            lazy_processor=node.element.raw_value, context=context
+        )
+    return setting_tree
 
 
 def pre_evaluate_tree(setting_tree: SettingTree) -> DependencyGraph:
     """
     Pre-evaluate all nodes of the tree and return DependencyGraph.
+
+    possible optimization:
+        Could try to evaluate dependency directly, so if they are
+        luckily pre-evaluated in the proper order there is no
+        need for a second pass using dependency_graph
     """
     dependency_graph = DependencyGraph()
     for node in setting_tree:
@@ -60,7 +87,7 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     - return substitution dependencies:
         E.g: For node with path ("original", "setting")
         with raw_value: (format_parser, "hello {this.other.setting}")
-        return:         DependencyEdge(("original", "setting"), ("other", "setting"))
+        return:         [DependencyEdge(("original", "setting"), ("other", "setting"))]
     """
     # normalize string tokens
     lazy_processor = _normalize_string_tokens(str(node.element.raw_value))
@@ -83,10 +110,9 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     return dependencie_edges
 
 
-def _normalize_string_tokens(string_with_token: str) -> LazyProcessor:
+def _normalize_string_tokens(string_with_token: str) -> LazyProcessors:
     """Transforms string with tokens into LazyProcessor"""
-    ...
-    return LazyProcessor([lambda x: x], string_with_token)
+    return LazyProcessors([bypass_processor], string_with_token)
 
 
 def _get_substitution_dependencies(string: str) -> Sequence[TreePath]:
@@ -94,14 +120,17 @@ def _get_substitution_dependencies(string: str) -> Sequence[TreePath]:
     ...
 
 
-def _apply_lazy_processor(lazy_processor: LazyProcessor):
+def _apply_lazy_processor(
+    lazy_processor: LazyProcessors, context: ContextObject = MISSING
+):
     """
     Apply lazy_processor operations and return processed value
-    Assumes lazy_processor has no dependencies.
+    Assumes outer context won't allow context with missing dependencies.
     """
+    context_object = context if not MISSING else ContextObject()
     value = lazy_processor.raw_value
     for operator in lazy_processor.operators:
-        value = operator(value)
+        value = operator(value, context_object)
     return value
 
 
@@ -127,12 +156,19 @@ class DependencyGraph:
         """Clear graph vertex and edges"""
         ...
 
+    def items(self) -> Generator[tuple[TreePath, Sequence[TreePath]], Any, Any]:
+        """Yields tuple of dependent and sequence of dependents"""
+        yield (("foo",), (("bar",),))
+
     def _validate(self):
         """Validate graph non-circularity"""
         ...
 
     def __iter__(self):
         """Return vertex (TreePath) iterator in proper_order"""
+        yield TreePath(
+            "",
+        )
 
     def __len__(self):
         return 0

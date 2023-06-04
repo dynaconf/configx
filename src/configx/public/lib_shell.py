@@ -35,6 +35,7 @@ from __future__ import annotations
 from typing import Any
 
 from configx.core.setting_tree import Node, SettingTree, TreePath
+from configx.types import MISSING
 
 
 def main():
@@ -43,8 +44,6 @@ def main():
     setting.get("foo.bar")
 
 
-# Sentinel for non-provided arguments
-MISSING: Any = object()
 
 ## setting query
 # [x] 'get',

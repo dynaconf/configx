@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from sys import exception
 from typing import Any
 
-from configx.types import CompoundTypes, LazyProcessor, PrimitiveTypes, SimpleTypes, TreePath
+from configx.types import CompoundTypes, LazyProcessors, PrimitiveTypes, SimpleTypes, TreePath
 from configx.utils import normalize_compound_type
 
 
@@ -26,7 +26,7 @@ def main():
 @dataclass
 class Setting:
     path: TreePath
-    raw_value: PrimitiveTypes | LazyProcessor
+    raw_value: PrimitiveTypes | LazyProcessors
     real_value: Any = None
 
     @property
@@ -271,7 +271,11 @@ class SettingTree:
 
     def __iter__(self):
         """Pre-order iteration"""
-        yield self.root
+        def _pre_order(node: Node):
+            for child in node.children:
+                yield child
+                _pre_order(child)
+        return _pre_order(self.root)
 
     def __len__(self):
         return len(self._internal_cache) - 1
