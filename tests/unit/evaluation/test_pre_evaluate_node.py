@@ -2,14 +2,10 @@ from typing import Any, NamedTuple
 
 import pytest
 
+from configx.actions.evaluation.main import pre_evaluate_node, pre_evaluate_tree
+from configx.actions.evaluation.processors import get_processor
 from configx.core.setting_tree import Node, SettingTree
-from configx.operations.evaluation.main import (
-    NOT_EVALUATED,
-    pre_evaluate_node,
-    pre_evaluate_tree,
-)
-from configx.operations.evaluation.processors import get_processor
-from configx.types import SimpleTypes
+from configx.types import NOT_EVALUATED, SimpleTypes
 
 
 class PreEvaluateTestcase(NamedTuple):
@@ -108,7 +104,7 @@ def test_pre_evaluate_node__casting(input, raw, real, dep_graph_len):
     """
     setting_tree = SettingTree()
     setting_tree.populate({"value": input})  # type: ignore (why?)
-    node = setting_tree._get_node(("value",))
+    node = setting_tree.get_node(("value",))
 
     dependency_graph = pre_evaluate_node(node)
 
@@ -125,7 +121,7 @@ def test_pre_evaluate_node__composability(input, raw, real, dep_graph_len):
     """
     setting_tree = SettingTree()
     setting_tree.populate({"value": input})  # type: ignore (why?)
-    node = setting_tree._get_node(("value",))
+    node = setting_tree.get_node(("value",))
 
     dependency_graph = pre_evaluate_node(node)
 
@@ -142,7 +138,7 @@ def test_pre_evaluate_node__format(input, raw, real, dep_graph_len):
     """
     setting_tree = SettingTree()
     setting_tree.populate({"value": input})  # type: ignore (why?)
-    node = setting_tree._get_node(("value",))
+    node = setting_tree.get_node(("value",))
 
     dependency_graph = pre_evaluate_node(node)
 
@@ -159,7 +155,7 @@ def test_pre_evaluate_node__jinja(input, raw, real, dep_graph_len):
     """
     setting_tree = SettingTree()
     setting_tree.populate({"value": input})  # type: ignore (why?)
-    node = setting_tree._get_node(("value",))
+    node = setting_tree.get_node(("value",))
 
     dependency_graph = pre_evaluate_node(node)
 
@@ -180,7 +176,7 @@ def test_pre_evaluate_node__raises():
     data = {"value": input}
     st.populate(data)  # type: ignore (why?)
 
-    node = st._get_node(("value",))
+    node = st.get_node(("value",))
 
     d = pre_evaluate_node(node)
 

@@ -1,5 +1,5 @@
 """
-Shared Types for the project
+Shared Types for the project.
 """
 from __future__ import annotations
 
@@ -7,42 +7,82 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, NamedTuple, Protocol, Sequence, TypeAlias
 
 if TYPE_CHECKING:
-    pass
+    from configx.core.setting_tree import Node
 
 
-# Sentinel for non-provided arguments
-MISSING: Any = object()
-
-ContextObject: TypeAlias = SimpleNamespace
+# Sentinels
+# related: https://peps.python.org/pep-0661/
 
 
-class RawProcessor(Protocol):
-    """
-    A raw string processing function.
-    It should take a raw string (presumably without tokens) and a ContextObject
-    (arbitrary object with attribute access) and return a processed value.
-    """
-
-    def __call__(self, raw_string: str, context: ContextObject = MISSING) -> None:
-        ...
+class MissingType:
+    def __repr__(self):
+        return "<MISSING>"
 
 
-class RawData(NamedTuple):
-    operators: Sequence[RawProcessor]
-    raw_value: str
+class NotEvaluatedType:
+    def __repr__(self):
+        return "<NOT_EVALUATED>"
 
 
-class DependencyEdge(NamedTuple):
-    dependent: TreePath
-    depends_on: TreePath
+MISSING = MissingType()
+NOT_EVALUATED = NotEvaluatedType()
+
+
+# SettingTree
+
+
+TreePath = tuple[str | int, ...]  # ("path", "to", "setting")
+TreeMap = dict[TreePath, "Node"]
 
 
 SimpleTypes = int | str | float
 CompoundTypes = list | dict
 PrimitiveTypes = SimpleTypes | CompoundTypes
 
-Raw = str  # should be class
-Environment = str  # should be class
+# Setting related
 
-SettingSource = str  # unix-like file object
-TreePath = tuple[str | int, ...]  # ("path", "to", "setting")
+
+SettingSource = str  # unix-like file object aka identifier
+SettingSourceType = Any  # unix-like file type aka loader
+
+
+class RawValue(str):
+    """Raw String with unparsed tokens"""
+
+
+class LazyValue(NamedTuple):
+    """Structure ready to be evaluated. Holds processors (parsed tokens) and raw strings."""
+
+    operators: Sequence[RawProcessor]
+    raw_value: str
+
+
+class RealValue(Any):
+    """Evaluated value"""
+
+
+# Evaluation
+
+
+class ContextObject(SimpleNamespace):
+    """
+    Arbritrary object to allow for object-dot access (e.g, for format)
+    """
+
+
+class RawProcessor(Protocol):
+    """
+    A function that transforms a raw string into a new value,
+    optionaly using a context object.
+    """
+
+    def __call__(self, raw_string: str, context: ContextObject = MISSING) -> None:
+        ...
+
+
+TreePathGraph: TypeAlias = dict[TreePath, set[TreePath]]
+
+
+class DependencyEdge(NamedTuple):
+    dependent: TreePath
+    depends_on: TreePath

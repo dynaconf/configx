@@ -1,7 +1,7 @@
 import pytest
 
 from configx.core.setting_tree import SettingTree
-from configx.operations.evaluation.processors import build_context_from_tree
+from configx.actions.evaluation.processors import build_context_from_tree
 
 
 def _pre_evaluate_tree_mock(setting_tree: SettingTree):

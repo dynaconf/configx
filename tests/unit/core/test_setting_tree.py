@@ -39,11 +39,6 @@ from configx.core.setting_tree import ChildAlreadyExist, Setting, SettingTree
 
 # def test_load_dict():
 #     pass
-def main():
-    st = SettingTree()
-    st.populate({"name": "foo", "bucket": []})
-    st.populate({"name": "foo"}, basenode=st._get_node(("bucket",)))
-    st.show_tree()
 
 
 def test_populate_simple_types():

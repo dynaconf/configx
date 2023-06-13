@@ -1,10 +1,10 @@
 """
 Evalution module.
-Responsible for manipulating Setting inside SettingNodes
+Responsible for manipulating Setting values inside Nodes
 
 Example:
     >>> import evaluate
-    >>> import SettingTree as ST
+    >>> import SettingTree
 
     >>> data = {
             "cast": "@int 123",
@@ -12,10 +12,9 @@ Example:
             "a": "hello",
             "foo": {"b": "world"}
         }
-    >>> st = ST(data)
+    >>> st = SettingTree(data)
     >>> evalution.evaluate_tree(
-            setting_tree=st,
-            dynaconfig_tree=ST(),
+            setting_tree=st
         )
 
     >>> st.show_tree()
@@ -30,15 +29,32 @@ from __future__ import annotations
 
 from collections import defaultdict
 from graphlib import CycleError, TopologicalSorter
-from typing import Any, Generator, Sequence, TypeAlias
+from typing import TYPE_CHECKING, Any, Generator, Sequence, TypeAlias
 
-from configx.core.setting_tree import Node, SettingTree, TreePath
-from configx.operations.evaluation.processors import build_context_from_tree, get_processor
-from configx.public.lib_shell import MISSING
-from configx.types import ContextObject, DependencyEdge, RawData, RawProcessor
+from configx.actions.evaluation.processors import (
+    SUBSTITUTION_OPERATORS,
+    build_context_from_tree,
+    get_processor,
+)
+from configx.types import (
+    MISSING,
+    ContextObject,
+    DependencyEdge,
+    LazyValue,
+    TreePath,
+    TreePathGraph,
+)
+
+if TYPE_CHECKING:
+    from configx.core.setting_tree import Node, SettingTree
 
 
-def evaluate(setting_tree: SettingTree, internal_config_tree: SettingTree):
+def main():
+    """Usage samples"""
+    ...
+
+
+def evaluate_tree(setting_tree: SettingTree, internal_config_tree: SettingTree):
     ...
 
 
@@ -55,13 +71,13 @@ def evaluate_tree_dependencies(
         raise
 
     for path, dependencies in topological_order:
-        node = setting_tree._get_node(path)
+        node = setting_tree.get_node(path)
         context = build_context_from_tree(setting_tree, dependencies)
 
         # should be pre-evaluated
-        assert isinstance(node.element.raw_value, RawData)
-        node.element.real_value = _apply_lazy_processor(
-            lazy_processor=node.element.raw_value, context=context
+        assert isinstance(node.element.raw_value, LazyValue)
+        node.element.real_value = _apply_lazy_processors(
+            lazy_value=node.element.raw_value, context=context
         )
     return setting_tree
 
@@ -78,49 +94,63 @@ def pre_evaluate_tree(setting_tree: SettingTree) -> DependencyGraph:
     dependency_graph = DependencyGraph()
     for node in setting_tree:
         edges = pre_evaluate_node(node)
-        for edge in edges:
-            dependency_graph.add_edge(edge)
+        dependency_graph.add_edges(edges)
     return dependency_graph
 
 
 def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     """
     Pre-evaluates a single node:
-    - normalize string with tokens.
-        E.g: "@int 123" -> ((int_converter,), "123") type: LazyProcessor
+
+    - normalize string with tokens to RawData type:
+        E.g: "@int 123" -> LazyValue(processors=[int_converter], raw_string="123")
+
     - apply parser function (with no dependencies):
         E.g: (int_converter, "123") -> s.real_value=123
+
     - return substitution dependencies:
         E.g: For node with path ("original", "setting")
         with raw_value: (format_parser, "hello {this.other.setting}")
         return:         [DependencyEdge(("original", "setting"), ("other", "setting"))]
     """
-    # normalize string tokens
-    lazy_processor = _normalize_string_tokens(str(node.element.raw_value))
-    node.element.raw_value = lazy_processor
-    real_value = NOT_EVALUATED  # is this needed?
+    if node.is_pre_evaluated:
+        return []
 
-    # apply parser funcions if no dependencies
+    # normalize string tokens
+    lazy_value = _parse_raw_to_lazy_value(str(node.element.raw_value))
+    node.element.raw_value = lazy_value
+
+    # apply parser functions if no dependencies
     dependencies = []
-    if SUBSTITUTION_OPERATORS in lazy_processor.operators:
-        dependencies = _get_substitution_dependencies(lazy_processor.raw_value)
-        # should dependencies be kept inside Setting? Maybe it can be convenient
+    if SUBSTITUTION_OPERATORS in lazy_value.operators:
+        dependencies = _get_substitution_dependencies(lazy_value.raw_value)
+
+    dependencie_edges = []
     if not dependencies:
-        node.element.real_value = _apply_lazy_processor(lazy_processor)
+        node.element.real_value = _apply_lazy_processors(lazy_value)
 
     # return dependencie edges
-    dependencie_edges = []
-    if dependencies:
+    else:
         dependencie_edges = [
             DependencyEdge(node.path, dependency) for dependency in dependencies
         ]
     return dependencie_edges
 
 
-def _normalize_string_tokens(string_with_token: str) -> RawData:
-    """Transforms string with tokens into LazyProcessor"""
+def _parse_raw_to_lazy_value(string_with_token: str) -> LazyValue:
+    """
+    Transforms RawValue (raw string with tokens) to LazyValue (processors and string)
+    """
+    # tokens_part = re.match(r"(@\w*\s?)+", raw_data)
+    # data_part = raw_data
+    # converters = []
+
+    # if tokens_part:
+    #     data_part = raw_data[tokens_part.end() :]
+    #     tokens = tokens_part.group().strip().split(" ")
+    #     converters = [get_processor(t) for t in tokens]
     placeholder = get_processor("bypass")
-    return RawData([placeholder], string_with_token)
+    return LazyValue([placeholder], string_with_token)
 
 
 def _get_substitution_dependencies(string: str) -> Sequence[TreePath]:
@@ -128,33 +158,21 @@ def _get_substitution_dependencies(string: str) -> Sequence[TreePath]:
     ...
 
 
-def _apply_lazy_processor(
-    lazy_processor: RawData, context: ContextObject = MISSING
-):
+def _apply_lazy_processors(lazy_value: LazyValue, context: ContextObject = MISSING):
     """
-    Apply lazy_processor operations and return processed value
+    Apply processors of @lazy_value using @context and return processed value.
     Assumes outer context won't allow context with missing dependencies.
     """
     context_object = context if not MISSING else ContextObject()
-    value = lazy_processor.raw_value
-    for operator in lazy_processor.operators:
+    value = lazy_value.raw_value
+    for operator in lazy_value.operators:
         value = operator(value, context_object)
     return value
 
 
-SUBSTITUTION_OPERATORS = [lambda x: x, lambda x: x]
-
-
-class NOT_EVALUATED:
-    pass
-
-
-TreePathGraph: TypeAlias = dict[TreePath, set[TreePath]]
-
-
 class DependencyGraph:
     """
-    Dependecy Graph.
+    Dependency Graph.
     Responsible ordering/validating dependencies and returning
     nodes in proper order.
     """
@@ -165,6 +183,11 @@ class DependencyGraph:
     def add_edge(self, edge: DependencyEdge):
         """Add node dependency"""
         self._graph[edge.dependent].add(edge.depends_on)
+
+    def add_edges(self, edges: Sequence[DependencyEdge]):
+        """Add node dependencies"""
+        for edge in edges:
+            self.add_edge(edge)
 
     def clear(self):
         """Clear graph vertex and edges"""

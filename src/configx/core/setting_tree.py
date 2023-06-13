@@ -8,25 +8,47 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from configx.types import CompoundTypes, RawData, PrimitiveTypes, SimpleTypes, TreePath
-from configx.utils import normalize_compound_type
+from configx.exceptions import ChildAlreadyExist, EmptyTreePath, NodeNotFound
+from configx.types import (
+    MISSING,
+    NOT_EVALUATED,
+    CompoundTypes,
+    LazyValue,
+    PrimitiveTypes,
+    SimpleTypes,
+    TreeMap,
+    TreePath,
+)
+from configx.utils import print_header
 
 
 def main():
     """Usage samples"""
-    st = SettingTree()
-    st.show_map()
-    print(st.get_setting(("foo", "bar", "spam")))
+    data = {
+        "a": "A",
+        "listy": [1, 2, {"b": [3, 4]}],
+        "dicty": {"c": "C", "d": [5, 6, {"e": "E"}]},
+    }
+    setting_tree = SettingTree()
+    setting_tree.populate(data)
 
+    print_header("show_tree")
+    setting_tree.show_tree()
 
-### Tree
+    print_header("show_map")
+    setting_tree.show_map()
+
+    print_header("print(get_setting)")
+    print(setting_tree.get_setting(("a",)))
+    print(setting_tree.get_setting(("listy", 2, "b", 1)))
+    print(setting_tree.get_setting(("dicty", "d", 2, "e")))
 
 
 @dataclass
 class Setting:
     path: TreePath
-    raw_value: PrimitiveTypes | RawData
-    real_value: Any = None
+    raw_value: PrimitiveTypes | LazyValue
+    real_value: Any = NOT_EVALUATED
 
     @property
     def is_leaf(self):
@@ -52,6 +74,18 @@ class Node:
             raise NodeNotFound(f"Child is not found in node: {self}")
         return default
 
+    def add_child(self, child: Node, overwrite=True):
+        """
+        Adds child to node.
+        """
+        if self.child_exist(child):
+            raise ChildAlreadyExist(f"Child already exist: {repr(child.dot_path)}")
+        self._children.append(child)
+
+    def remove_child(self, child: Node | TreePath):
+        """Removes child by Node identity or TreePath"""
+        ...
+
     def child_exist(self, child: Node | TreePath) -> bool:
         try:
             self.get_child(child)
@@ -59,13 +93,9 @@ class Node:
         except NodeNotFound:
             return False
 
-    def add_child(self, child: Node, overwrite=True):
-        """
-        Adds child to node.
-        """
-        if self.child_exist(child):
-            raise ChildAlreadyExist(f"Child already exist: {repr(child.name)}")
-        self._children.append(child)
+    @property
+    def children(self):
+        return self._children
 
     # convenience properties
 
@@ -74,54 +104,33 @@ class Node:
         return self.element.is_leaf
 
     @property
+    def is_evaluated(self) -> bool:
+        return self.element.real_value is not NOT_EVALUATED
+
+    @property
+    def is_pre_evaluated(self) -> bool:
+        return isinstance(self.element.raw_value, LazyValue)
+
+    @property
     def path(self):
+        """Get Node's TreePath"""
         return self.element.path
 
     @property
-    def name(self):
-        """Printable name"""
+    def dot_path(self):
+        """Get Node's dot path string"""
         return ".".join([str(v) for v in self.element.path])
 
     @property
-    def children(self):
-        return self._children
+    def key(self):
+        """Get Node's key (last name from full Node path)"""
+        return self.element.path[-1]
 
     def __repr__(self):
         return "Node({}, child_count={})".format(
             repr(self.element),
             len(self.children),
         )
-
-
-def assure_tree_path(path_or_node: TreePath | Node) -> TreePath:
-    """
-    Convenience: gets TreePath from node or bypasses if already TreePath
-    """
-    n = path_or_node
-    return n if isinstance(n, tuple) else n.path
-
-
-class SettingNotFound(Exception):
-    pass
-
-
-class NodeNotFound(Exception):
-    pass
-
-
-class EmptyTreePath(Exception):
-    pass
-
-
-class ChildAlreadyExist(Exception):
-    pass
-
-
-class EMTPY:
-    pass
-
-
-TreeMap = dict[TreePath, Node]
 
 
 class SettingTree:
@@ -205,7 +214,7 @@ class SettingTree:
         self,
         key: str | int,
         raw_value: SimpleTypes | CompoundTypes,
-        parent: Node | None = None,
+        parent: Node = MISSING,
     ) -> Node:
         """Create and add node to key"""
         ...
@@ -216,17 +225,7 @@ class SettingTree:
     def remove_node(self, new_setting: Setting, node_path: TreePath) -> Node:
         ...
 
-    def get_setting(self, path: TreePath) -> Setting:
-        return self._get_node(path).element
-
-    def node_exist(self, path: TreePath) -> bool:
-        try:
-            self._get_node(path)
-            return True
-        except NodeNotFound:
-            return False
-
-    def _get_node(self, rootless_path: TreePath, default: Node | None = None) -> Node:
+    def get_node(self, rootless_path: TreePath, default: Node | None = None) -> Node:
         if len(rootless_path) == 0:
             raise EmptyTreePath
 
@@ -238,18 +237,21 @@ class SettingTree:
                 raise NodeNotFound(f"Node not found for path: {rooted_path}")
             return default
 
-    # def _get_parent_from_tree_path(self, path: TreePath) -> Node:
-    #     try:
-    #         parent = self._get_node(path[:-1])
-    #     except SettingNotFound:
-    #         parent = self._add_setting(Setting(path[:-1], "", is_leaf=False))
-    #         parent.element.raw_value = parent
-    #     except EmptyTreePath:
-    #         parent = self.root
-    #     return parent
+    def get_setting(self, path: TreePath) -> Setting:
+        """Convenient method to get Setting of node"""
+        return self.get_node(path).element
+
+    def node_exist(self, path: TreePath) -> bool:
+        try:
+            self.get_node(path)
+            return True
+        except NodeNotFound:
+            return False
 
     def _setting_exist(self, setting_path: TreePath) -> bool:
         return setting_path in self._internal_cache
+
+    # display
 
     def show_map(self):
         for k, v in self._internal_cache.items():
@@ -270,16 +272,40 @@ class SettingTree:
         for n in node.children:
             self._show_tree(n, depth + 1, debug)
 
+    # dunder
+
     def __iter__(self):
         """Pre-order iteration"""
+
         def _pre_order(node: Node):
             for child in node.children:
                 yield child
                 _pre_order(child)
+
         return _pre_order(self.root)
 
     def __len__(self):
         return len(self._internal_cache) - 1
+
+
+def assure_tree_path(path_or_node: TreePath | Node) -> TreePath:
+    """
+    Convenience: gets TreePath from node or bypasses if already TreePath
+    """
+    n = path_or_node
+    return n if isinstance(n, tuple) else n.path
+
+
+def tree_to_dict(node: Node) -> dict:
+    """
+    Converts a SettingTree to python structure (list and dicts).
+
+    Args:
+        node: the root node of the subtree to be converted
+    Raises:
+        NotEvaluatedError: tree has nodes without evaluation
+    """
+    ...
 
 
 if __name__ == "__main__":

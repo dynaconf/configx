@@ -9,7 +9,7 @@ from typing import Sequence
 
 from configx.core.setting_tree import SettingTree
 from configx.exceptions import TokenError
-from configx.operations.evaluation import builtin_processors
+from configx.actions.evaluation import builtin_processors
 from configx.types import MISSING, ContextObject, RawProcessor, TreePath
 
 _raw_processors: dict[str, RawProcessor] = {}
@@ -32,6 +32,7 @@ def get_processor(name: str):
 # initialize builtin processors
 
 
+SUBSTITUTION_OPERATORS = [get_processor("jinja"), get_processor("format")]
 for name, processor in builtin_processors.__dict__.items():
     if isfunction(processor):
         processor_name = name.rpartition("_")[0]

@@ -53,8 +53,7 @@ def convert_tree_path_to_dot_notation(tree_path: TreePath):
     """
     Converts a TreePath object to dot notation string.
     """
-    return ".".join(tree_path)
-
+    return ".".join([str(v) for v in tree_path])
 
 
 def template_dependencies_in_context(
@@ -101,3 +100,14 @@ def _dict_to_simple_namespace(data: dict, obj: SimpleNamespace, path: str = ""):
             if isinstance(v, dict):
                 _dict_to_simple_namespace(v, obj)
     return data
+
+
+def print_header(title: str, substitle: str = ""):
+    div = "=" * (len(title) + 4)
+    print()
+    print(div)
+    print("=", title, "=")
+    print(div)
+    if substitle:
+        print(substitle)
+    print()

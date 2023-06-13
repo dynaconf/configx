@@ -1,6 +1,8 @@
 """
 Builtin processors.
 Should contain only builtin implementation of RawProcessors
+
+Name convention is processor_name + _processortype
 """
 
 from typing import Any
