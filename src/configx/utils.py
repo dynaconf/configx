@@ -1,3 +1,6 @@
+"""
+General utilities. These should probably be more specific.
+"""
 import re
 from types import SimpleNamespace
 
@@ -43,7 +46,7 @@ def convert_dot_notation_to_tree_path(string: str):
     """
     Converts dot notation string to TreePath object.
     """
-    return tuple(string.split("."))
+    return TreePath(string.split("."))
 
 
 def convert_tree_path_to_dot_notation(tree_path: TreePath):
@@ -52,13 +55,6 @@ def convert_tree_path_to_dot_notation(tree_path: TreePath):
     """
     return ".".join(tree_path)
 
-
-def convert_context_type_to_dot_syntax(tree_path: TreePath):
-    """
-    Converts from ContextType (dict with TreePath as keys)
-    to dot notation syntax (dot-notation string as keys)
-    """
-    pass
 
 
 def template_dependencies_in_context(

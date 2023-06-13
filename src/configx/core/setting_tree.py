@@ -6,10 +6,9 @@ essential operations over Setting objects consistently.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from sys import exception
 from typing import Any
 
-from configx.types import CompoundTypes, LazyProcessors, PrimitiveTypes, SimpleTypes, TreePath
+from configx.types import CompoundTypes, RawData, PrimitiveTypes, SimpleTypes, TreePath
 from configx.utils import normalize_compound_type
 
 
@@ -26,7 +25,7 @@ def main():
 @dataclass
 class Setting:
     path: TreePath
-    raw_value: PrimitiveTypes | LazyProcessors
+    raw_value: PrimitiveTypes | RawData
     real_value: Any = None
 
     @property
@@ -44,7 +43,7 @@ class Node:
         """
         Get immediate child of self (not recursive)
         """
-        path = to_tree_path(child)
+        path = assure_tree_path(child)
         result = [n for n in self.children if n.path == path]
         if result:
             return result[0]
@@ -67,6 +66,8 @@ class Node:
         if self.child_exist(child):
             raise ChildAlreadyExist(f"Child already exist: {repr(child.name)}")
         self._children.append(child)
+
+    # convenience properties
 
     @property
     def is_leaf(self) -> bool:
@@ -92,7 +93,7 @@ class Node:
         )
 
 
-def to_tree_path(path_or_node: TreePath | Node) -> TreePath:
+def assure_tree_path(path_or_node: TreePath | Node) -> TreePath:
     """
     Convenience: gets TreePath from node or bypasses if already TreePath
     """

@@ -28,12 +28,14 @@ Example:
 """
 from __future__ import annotations
 
-from typing import Any, Generator, Sequence
+from collections import defaultdict
+from graphlib import CycleError, TopologicalSorter
+from typing import Any, Generator, Sequence, TypeAlias
 
 from configx.core.setting_tree import Node, SettingTree, TreePath
-from configx.operations.raw_processors import ContextObject, build_context_from_tree, bypass_processor, placeholder_processor
+from configx.operations.evaluation.processors import build_context_from_tree, get_processor
 from configx.public.lib_shell import MISSING
-from configx.types import DependencyEdge, LazyProcessors, RawProcessor
+from configx.types import ContextObject, DependencyEdge, RawData, RawProcessor
 
 
 def evaluate(setting_tree: SettingTree, internal_config_tree: SettingTree):
@@ -47,13 +49,17 @@ def evaluate_tree_dependencies(
     Evaluate setting_tree dependencies only.
     Assumes setting_tree is pre-evaluated.
     """
-    dependency_graph._validate()  # treat invalid dependency relations
-    for path, dependencies in dependency_graph.items():
+    try:
+        topological_order = dependency_graph.items()
+    except CycleError:
+        raise
+
+    for path, dependencies in topological_order:
         node = setting_tree._get_node(path)
         context = build_context_from_tree(setting_tree, dependencies)
 
         # should be pre-evaluated
-        assert isinstance(node.element.raw_value, LazyProcessors)
+        assert isinstance(node.element.raw_value, RawData)
         node.element.real_value = _apply_lazy_processor(
             lazy_processor=node.element.raw_value, context=context
         )
@@ -98,6 +104,7 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     dependencies = []
     if SUBSTITUTION_OPERATORS in lazy_processor.operators:
         dependencies = _get_substitution_dependencies(lazy_processor.raw_value)
+        # should dependencies be kept inside Setting? Maybe it can be convenient
     if not dependencies:
         node.element.real_value = _apply_lazy_processor(lazy_processor)
 
@@ -110,9 +117,10 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     return dependencie_edges
 
 
-def _normalize_string_tokens(string_with_token: str) -> LazyProcessors:
+def _normalize_string_tokens(string_with_token: str) -> RawData:
     """Transforms string with tokens into LazyProcessor"""
-    return LazyProcessors([bypass_processor], string_with_token)
+    placeholder = get_processor("bypass")
+    return RawData([placeholder], string_with_token)
 
 
 def _get_substitution_dependencies(string: str) -> Sequence[TreePath]:
@@ -121,7 +129,7 @@ def _get_substitution_dependencies(string: str) -> Sequence[TreePath]:
 
 
 def _apply_lazy_processor(
-    lazy_processor: LazyProcessors, context: ContextObject = MISSING
+    lazy_processor: RawData, context: ContextObject = MISSING
 ):
     """
     Apply lazy_processor operations and return processed value
@@ -141,6 +149,9 @@ class NOT_EVALUATED:
     pass
 
 
+TreePathGraph: TypeAlias = dict[TreePath, set[TreePath]]
+
+
 class DependencyGraph:
     """
     Dependecy Graph.
@@ -148,27 +159,28 @@ class DependencyGraph:
     nodes in proper order.
     """
 
+    def __init__(self):
+        self._graph: TreePathGraph = defaultdict(set)
+
     def add_edge(self, edge: DependencyEdge):
         """Add node dependency"""
-        ...
+        self._graph[edge.dependent].add(edge.depends_on)
 
-    def clear(self) -> Node:
+    def clear(self):
         """Clear graph vertex and edges"""
-        ...
+        self._graph: TreePathGraph = defaultdict(set)
 
     def items(self) -> Generator[tuple[TreePath, Sequence[TreePath]], Any, Any]:
-        """Yields tuple of dependent and sequence of dependents"""
-        yield (("foo",), (("bar",),))
-
-    def _validate(self):
-        """Validate graph non-circularity"""
-        ...
+        """
+        Yields tuple of dependent and its dependency sequence in topological order.
+        """
+        topological_sorter = TopologicalSorter(self._graph)
+        for dependent in topological_sorter.static_order():
+            yield (dependent, [*self._graph[dependent]])
 
     def __iter__(self):
-        """Return vertex (TreePath) iterator in proper_order"""
-        yield TreePath(
-            "",
-        )
+        """Same as items()"""
+        return self.items()
 
     def __len__(self):
-        return 0
+        return len(self._graph)

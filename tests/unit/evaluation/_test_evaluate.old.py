@@ -1,21 +1,19 @@
 import pytest
 
 from configx.core.setting_tree import SettingTree
-from configx.operations.utils.evalaute_old import (
+from configx.operations.evaluation._main_old import (
     _apply_converter_chain,
     _parse_token_symbols,
     evaluate_subtree,
     tree_to_dict,
 )
-from configx.operations.utils.converters import get_converter
+from configx.operations.evaluation.builtin_processors import get_processor
 from configx.exceptions import TokenError
 from configx.utils import (
     convert_dot_notation_to_tree_path,
     get_template_variables,
     template_dependencies_in_context,
 )
-
-# from configx.operations.evaluation import evaluate_subtree
 
 
 def test_convert_dot_notation_to_tree_object():
@@ -51,19 +49,19 @@ def test_get_template_variables():
     "raw_data,expected",
     (
         pytest.param("no-tokens", ([], "no-tokens"), id="none-value"),
-        pytest.param("@none", ([get_converter("none")], ""), id="none-value"),
-        pytest.param("@int 123", ([get_converter("int")], "123"), id="simple-int"),
-        pytest.param("@bool 123", ([get_converter("bool")], "123"), id="simple-bool"),
+        pytest.param("@none", ([get_processor("none")], ""), id="none-value"),
+        pytest.param("@int 123", ([get_processor("int")], "123"), id="simple-int"),
+        pytest.param("@bool 123", ([get_processor("bool")], "123"), id="simple-bool"),
         pytest.param(
-            "@float 123", ([get_converter("float")], "123"), id="simple-float"
+            "@float 123", ([get_processor("float")], "123"), id="simple-float"
         ),
-        pytest.param("@json 123", ([get_converter("json")], "123"), id="simple-json"),
+        pytest.param("@json 123", ([get_processor("json")], "123"), id="simple-json"),
         pytest.param(
-            "@format 123", ([get_converter("format")], "123"), id="simple-format"
+            "@format 123", ([get_processor("format")], "123"), id="simple-format"
         ),
         pytest.param(
             "@int @format 123",
-            ([get_converter("int"), get_converter("format")], "123"),
+            ([get_processor("int"), get_processor("format")], "123"),
             id="compound format",
         ),
     ),
@@ -139,7 +137,7 @@ def test_builtin_converters_without_template_variables(converter_name, input, ou
     """
     Should apply converter correctly
     """
-    converter = get_converter(converter_name)
+    converter = get_processor(converter_name)
     result = converter(input, {})
     assert result == output
 
@@ -184,7 +182,7 @@ def test_apply_converter_chain_without_template_variables(converters, input, out
         not using formatters @jinja and @format
     Should apply converters ()
     """
-    converters = [get_converter(e) for e in converters]
+    converters = [get_processor(e) for e in converters]
     result = _apply_converter_chain(converters, input, context={})
     assert result == output
 

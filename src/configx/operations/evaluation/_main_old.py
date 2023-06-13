@@ -6,7 +6,8 @@ from typing import Sequence
 
 from configx.core.setting_tree import Setting, SettingTree
 from configx.exceptions import LazyValueFound
-from configx.operations.evaluation.converters import Converter, get_converter
+from configx.operations.evaluation.builtin_processors import get_processor
+from configx.operations.evaluation.builtin_processors import RawProcessor
 from configx.types import PrimitiveTypes, ContextType, NodeId, NodeType
 
 
@@ -111,7 +112,7 @@ def _evaluate_first_pass(
         return data
 
 
-def _parse_token_symbols(raw_data: str) -> tuple[list[Converter], str]:
+def _parse_token_symbols(raw_data: str) -> tuple[list[RawProcessor], str]:
     """
     Parse string with token symbols into a converters' chain and a raw data string
 
@@ -132,12 +133,12 @@ def _parse_token_symbols(raw_data: str) -> tuple[list[Converter], str]:
     if tokens_part:
         data_part = raw_data[tokens_part.end() :]
         tokens = tokens_part.group().strip().split(" ")
-        converters = [get_converter(t) for t in tokens]
+        converters = [get_processor(t) for t in tokens]
     return converters, data_part
 
 
 def _apply_converter_chain(
-    converter_chain: Sequence[Converter], data: str, context: ContextType
+    converter_chain: Sequence[RawProcessor], data: str, context: ContextType
 ):
     """
     Process data with chain of converters from index 0 to n.
@@ -177,7 +178,7 @@ class LazyValue:
 
     id: NodeId
     raw: str
-    converters: list[Converter]
+    converters: list[RawProcessor]
     dependencies: list[str] | None = None
 
 

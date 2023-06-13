@@ -1,25 +1,20 @@
 [project]
-name = "dynaconf-from-scratch"
-description = "Package to try out some system design and dsa ideias."
-version = "0.1.0"
-authors = [
-    { name = "Pedro Pessoa", email = "pedropsb95@gmail.com" }
-]
-
+name = "configx"
+description = "Dynaconf re-write"
+version = "0.0.0"
+requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
 dev = [
-    # "tox",
-    # "pre-commit",
-    # "bump2version"
+  "pytest",
+  "mkdocs-material",
+  "mkdocstrings[python]",
+  # "tox",
+  # "pre-commit",
+  # "bump2version"
 ]
 
 [tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
-
-# testpaths = [
-#     "tests",
-#     "integration",
+addopts = ["--import-mode=importlib"]
+pythonpath = "src"

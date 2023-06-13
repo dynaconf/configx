@@ -3,59 +3,65 @@ from typing import Any, NamedTuple
 import pytest
 
 from configx.core.setting_tree import Node, SettingTree
-from configx.operations.evaluation import (
+from configx.operations.evaluation.main import (
     NOT_EVALUATED,
     pre_evaluate_node,
     pre_evaluate_tree,
 )
-from configx.operations.utils.converters import get_converter
+from configx.operations.evaluation.processors import get_processor
 from configx.types import SimpleTypes
 
 
-class PreEvaluateExpected(NamedTuple):
+class PreEvaluateTestcase(NamedTuple):
     input: str
     raw: str | tuple
     real: Any
     dep_graph_len: int = 0
 
 
-P = PreEvaluateExpected
+TestCase = PreEvaluateTestcase
 
-getcon = get_converter
+getcon = get_processor
 
 casting_testcases = {
-    "cast-int": P(input="@int 123", raw=(getcon("int"), "123"), real=123),
-    "cast-float": P(input="@float 123", raw=(getcon("float"), "1.23"), real=1.23),
-    "cast-bool-false": P(input="@bool false", raw=(getcon("bool"), "1.23"), real=False),
-    "cast-bool-true": P(input="@bool true", raw=(getcon("bool"), "1.23"), real=True),
+    "cast-int": TestCase(input="@int 123", raw=(getcon("int"), "123"), real=123),
+    "cast-float": TestCase(
+        input="@float 123", raw=(getcon("float"), "1.23"), real=1.23
+    ),
+    "cast-bool-false": TestCase(
+        input="@bool false", raw=(getcon("bool"), "1.23"), real=False
+    ),
+    "cast-bool-true": TestCase(
+        input="@bool true", raw=(getcon("bool"), "1.23"), real=True
+    ),
 }
 
 composability_testcases = {
-    "compound-int-format": P(
+    "compound-int-format": TestCase(
         input="@int @format 123", raw=(getcon("int"), getcon("format"), "123"), real=123
     ),
-    "compound-int-jinja": P(
+    "compound-int-jinja": TestCase(
         input="@int @jinja 123", raw=(getcon("int"), getcon("jinja"), "123"), real=123
     ),
-    "compound-int-jinja": P(
+    "compound-int-jinja": TestCase(
         input="@int @jinja 123", raw=(getcon("int"), getcon("jinja"), "123"), real=123
     ),
 }
 
 dependency_format_testcases = {
-    "dependency-format-one-sub": P(
+    "dependency-format-one-sub": TestCase(
         input="@format {this.foo.bar}",
         raw=(getcon("format"), "{this['foo']['bar']}"),
         real=NOT_EVALUATED,
         dep_graph_len=1,
     ),
-    "dependency-format-two-subs": P(
+    "dependency-format-two-subs": TestCase(
         input="@format {this.foo.bar} {this.spam.eggs}",
         raw=(getcon("format"), "{this['foo']['bar']} {this['spam']['eggs']}"),
         real=NOT_EVALUATED,
         dep_graph_len=2,
     ),
-    "dependency-format-list-type": P(
+    "dependency-format-list-type": TestCase(
         input="@format {this.foo.0}",
         raw=(getcon("format"), "{this['foo'][0]}"),
         real=NOT_EVALUATED,
@@ -64,19 +70,19 @@ dependency_format_testcases = {
 }
 
 dependency_jinja_testcases = {
-    "dependency-jinja-one-sub": P(
+    "dependency-jinja-one-sub": TestCase(
         input="@jinja {{ this.foo.bar }}",
         raw=(getcon("jinja"), "{{ this['foo']['bar'] }}"),
         real=NOT_EVALUATED,
         dep_graph_len=1,
     ),
-    "dependency-jinja-two-subs": P(
+    "dependency-jinja-two-subs": TestCase(
         input="@jinja {{ this.foo.bar }} {{ this.spam.eggs }}",
         raw=(getcon("jinja"), "{this['foo']['bar']} {this['spam']['eggs']}"),
         real=NOT_EVALUATED,
         dep_graph_len=2,
     ),
-    "dependency-jinja-list-type": P(
+    "dependency-jinja-list-type": TestCase(
         input="@jinja {{ this.foo.0 }}",
         raw=(getcon("jinja"), "{{ this['foo'][0] }}"),
         real=NOT_EVALUATED,
@@ -85,9 +91,9 @@ dependency_jinja_testcases = {
 }
 
 
-def use_testcase(data: dict[str, PreEvaluateExpected]):
+def use_testcase(data: dict[str, PreEvaluateTestcase]):
     """Return dict to be unpacked in @pytest.mark.parametrize params"""
-    argnames = [*PreEvaluateExpected._fields]
+    argnames = [*PreEvaluateTestcase._fields]
     argvalues = []
     for test_id, expected in data.items():
         argvalues.append(pytest.param(*expected, id=test_id))

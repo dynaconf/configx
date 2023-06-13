@@ -17,11 +17,17 @@ ContextObject: TypeAlias = SimpleNamespace
 
 
 class RawProcessor(Protocol):
-    def __call__(self, raw_string: str, context: ContextObject = MISSING) -> Any:
+    """
+    A raw string processing function.
+    It should take a raw string (presumably without tokens) and a ContextObject
+    (arbitrary object with attribute access) and return a processed value.
+    """
+
+    def __call__(self, raw_string: str, context: ContextObject = MISSING) -> None:
         ...
 
 
-class LazyProcessors(NamedTuple):
+class RawData(NamedTuple):
     operators: Sequence[RawProcessor]
     raw_value: str
 
