@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 # related: https://peps.python.org/pep-0661/
 
 
-class MissingType:
+class MissingType(Any):
     def __repr__(self):
         return "<MISSING>"
 
@@ -54,7 +54,7 @@ class LazyValue(NamedTuple):
     """Structure ready to be evaluated. Holds processors (parsed tokens) and raw strings."""
 
     operators: Sequence[RawProcessor]
-    raw_value: str
+    string: str
 
 
 class RealValue(Any):

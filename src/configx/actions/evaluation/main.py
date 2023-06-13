@@ -123,7 +123,7 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     # apply parser functions if no dependencies
     dependencies = []
     if SUBSTITUTION_OPERATORS in lazy_value.operators:
-        dependencies = _get_substitution_dependencies(lazy_value.raw_value)
+        dependencies = _get_substitution_dependencies(lazy_value.string)
 
     dependencie_edges = []
     if not dependencies:
@@ -164,7 +164,7 @@ def _apply_lazy_processors(lazy_value: LazyValue, context: ContextObject = MISSI
     Assumes outer context won't allow context with missing dependencies.
     """
     context_object = context if not MISSING else ContextObject()
-    value = lazy_value.raw_value
+    value = lazy_value.string
     for operator in lazy_value.operators:
         value = operator(value, context_object)
     return value

@@ -1,6 +1,7 @@
 import pytest
 
-from configx.core.setting_tree import ChildAlreadyExist, Setting, SettingTree
+from configx.core.setting_tree import Setting, SettingTree
+from configx.exceptions import ChildAlreadyExist
 
 # def test_create_setting():
 #     st = SettingTree()

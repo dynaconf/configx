@@ -141,7 +141,6 @@ class SettingTree:
 
         # TODO: setup cache system (can be posponed)
         self._internal_cache: TreeMap = {self.root.path: self.root}
-        self._user_cache: dict[TreePath, dict[str, PrimitiveTypes]] | None = None
 
         self.env = env
         self.src = src
