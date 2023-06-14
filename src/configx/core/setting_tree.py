@@ -5,6 +5,7 @@ essential operations over Setting objects consistently.
 
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -42,6 +43,10 @@ def main():
     print(setting_tree.get_setting(("a",)))
     print(setting_tree.get_setting(("listy", 2, "b", 1)))
     print(setting_tree.get_setting(("dicty", "d", 2, "e")))
+
+    print_header("for node in setting_tree (iteration)")
+    for node in setting_tree:
+        print(node.dot_path, node.element.raw_value)
 
 
 @dataclass
@@ -126,6 +131,13 @@ class Node:
         """Get Node's key (last name from full Node path)"""
         return self.element.path[-1]
 
+    @property
+    def value(self):
+        """Get Node's value (raise if not evaluated)"""
+        if not self.is_evaluated:
+            raise ValueError("Node value is not evaluated yet")
+        return self.element.real_value
+
     def __repr__(self):
         return "Node({}, child_count={})".format(
             repr(self.element),
@@ -135,11 +147,10 @@ class Node:
 
 class SettingTree:
     def __init__(self, env: str = "default", src: str = "memory"):
+        # TODO: add optional populate on init: ST( dict | Node, ... )
+        # TODO: setup cache system (can be posponed)
         self.root = Node(Setting(("root",), ""), None)  # type: ignore
         self.root.parent = self.root
-        # TODO: add optional populate on init: ST( dict | Node, ... )
-
-        # TODO: setup cache system (can be posponed)
         self._internal_cache: TreeMap = {self.root.path: self.root}
 
         self.env = env
@@ -183,10 +194,10 @@ class SettingTree:
         """
         # basecase: leaf-node
         if isinstance(raw_value, SimpleTypes):
-            n = Node(Setting(path, raw_value), parent)
-            parent.add_child(n)
-            self._internal_cache[n.path] = n
-            return n
+            node = Node(Setting(path, raw_value), parent)
+            parent.add_child(node)
+            self._internal_cache[node.path] = node
+            return node
 
         # general case: non-leaf node
         # TODO: use list and dict sentinels {DICT, LIST} -> type(LIST)=list
@@ -199,15 +210,15 @@ class SettingTree:
         else:
             raise TypeError("`py_data` should be list or dict")
 
-        s = Setting(path, non_leaf_sentinel)
-        n = Node(s, parent)
-        parent.add_child(n)
-        self._internal_cache[n.path] = n
+        setting = Setting(path, non_leaf_sentinel)
+        node = Node(setting, parent)
+        parent.add_child(node)
+        self._internal_cache[node.path] = node
 
         for k, v in non_leaf_iterator(raw_value):
             new_path = path + (k,)
-            self._populate(new_path, v, n)
-        return n
+            self._populate(new_path, v, node)
+        return node
 
     def create_node(
         self,
@@ -250,6 +261,31 @@ class SettingTree:
     def _setting_exist(self, setting_path: TreePath) -> bool:
         return setting_path in self._internal_cache
 
+    # traversal
+
+    def _pre_order(self, node: Node):
+        yield node
+        for child in node.children:
+            for other in self._pre_order(child):
+                yield other
+
+    def values(self, use_cache: bool = False):
+        """Yields Node (exclude root)"""
+        iterable = self._pre_order(self.root)
+        yield from itertools.islice(iterable, 1, None)
+
+    def keys(self, use_cache: bool = False):
+        """Yields TreePath (exlude root)"""
+        iterable = self._pre_order(self.root)
+        iterable = itertools.islice(iterable, 1, None)
+        yield from (it.path for it in iterable)
+
+    def items(self, use_cache: bool = False):
+        """Yields (TreePath, Node) (exlude root)"""
+        iterable = self._pre_order(self.root)
+        iterable = itertools.islice(iterable, 1, None)
+        yield from ((it.path, it) for it in iterable)
+
     # display
 
     def show_map(self):
@@ -275,13 +311,7 @@ class SettingTree:
 
     def __iter__(self):
         """Pre-order iteration"""
-
-        def _pre_order(node: Node):
-            for child in node.children:
-                yield child
-                _pre_order(child)
-
-        return _pre_order(self.root)
+        yield from self.values()
 
     def __len__(self):
         return len(self._internal_cache) - 1

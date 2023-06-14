@@ -3,44 +3,6 @@ import pytest
 from configx.core.setting_tree import Setting, SettingTree
 from configx.exceptions import ChildAlreadyExist
 
-# def test_create_setting():
-#     st = SettingTree()
-#     n1 = st.create_node(("foo", "bar", "spam"), "eggs")
-#     n2 = st.create_node(("foo", "bar", "number"), 123)
-
-#     assert st._get_node(("foo", "bar", "spam")) is n1
-#     assert st._get_node(("foo", "bar", "number")) is n2
-
-#     # assert non-leaf Setting have the corresponding Node as it's raw_value
-#     foo_node = st._get_node(("foo",))
-#     assert foo_node.element.raw_value == foo_node
-
-
-# def test_add_setting_with_setting_object():
-#     st = SettingTree()
-#     n1 = st.add_setting(Setting(("foo", "bar", "spam"), "eggs"))
-#     n2 = st.add_setting(Setting(("foo", "bar", "number"), 123))
-
-#     assert st._get_node(("foo", "bar", "spam")) is n1
-#     assert st._get_node(("foo", "bar", "number")) is n2
-
-#     # assert non-leaf Setting have the corresponding Node as it's raw_value
-#     foo_node = st._get_node(("foo",))
-#     assert foo_node.element.raw_value == foo_node
-
-
-# def test_create_setting_with_compound_types():
-#     st = SettingTree()
-#     n1 = st.create_node(("foo", "bar", "spam"), ["a", "b", "c"])
-#     n2 = st.create_node(("foo", "bar", "number"), 123)
-
-#     assert st._get_node(("foo", "bar", "spam")) is n1
-#     assert st._get_node(("foo", "bar", "number")) is n2
-
-
-# def test_load_dict():
-#     pass
-
 
 def test_populate_simple_types():
     """
@@ -48,7 +10,7 @@ def test_populate_simple_types():
     """
     st = SettingTree()
 
-    # regular assigment
+    # first assigment
     st.populate({"name": "foo", "age": 123})
     assert len(st) == 2
     assert len(st.root.children) == 2
@@ -68,34 +30,92 @@ def test_populate_compound_types():
     """
     Should create compound types resursively
     """
-    st = SettingTree()
-
-    # Regular assignment
+    setting_tree = SettingTree()
     data = {
         "dict_type": {"foo": "bar", "spam": ["egg1", "egg2", "egg3"]},
         "list_type": ["a", True, 123],
     }
-    st.populate(data)
+    setting_tree.populate(data)
 
-    assert len(st) == 10
-    assert st.get_setting(("dict_type",)).is_leaf is False
-    assert st.get_setting(("dict_type", "foo")).raw_value == "bar"
-    assert st.get_setting(("dict_type", "spam", 0)).raw_value == "egg1"
+    assert len(setting_tree) == 10
+    assert setting_tree.get_setting(("dict_type",)).is_leaf is False
+    assert setting_tree.get_setting(("dict_type", "foo")).raw_value == "bar"
+    assert setting_tree.get_setting(("dict_type", "spam", 0)).raw_value == "egg1"
 
-    assert st.get_setting(("list_type",)).is_leaf is False
-    assert st.get_setting(("list_type", 0)).raw_value == "a"
-    assert st.get_setting(("list_type", 1)).raw_value is True
-    assert st.get_setting(("list_type", 2)).raw_value == 123
+    assert setting_tree.get_setting(("list_type",)).is_leaf is False
+    assert setting_tree.get_setting(("list_type", 0)).raw_value == "a"
+    assert setting_tree.get_setting(("list_type", 1)).raw_value is True
+    assert setting_tree.get_setting(("list_type", 2)).raw_value == 123
 
     # populate different branch
-    st.populate({"hello": "world"})
-    assert len(st) == 11
-    assert st.get_setting(("hello",)).raw_value == "world"
+    setting_tree.populate({"hello": "world"})
+    assert len(setting_tree) == 11
+    assert setting_tree.get_setting(("hello",)).raw_value == "world"
 
     # override safeguard
     with pytest.raises(ChildAlreadyExist):
-        st.populate({"dict_type": 123})
+        setting_tree.populate({"dict_type": 123})
 
     # dict|list merge safeguard
     with pytest.raises(ChildAlreadyExist):
-        st.populate({"dict_type": {"dont_merge_this": 123}})
+        setting_tree.populate({"dict_type": {"dont_merge_this": 123}})
+
+
+def test_traverse_tree_values():
+    setting_tree = SettingTree()
+    data = {
+        "dict_type": {"foo": "bar", "spam": ["egg1", "egg2", "egg3"]},
+        "list_type": ["a", True, 123],
+    }
+    setting_tree.populate(data)
+    tree_traversal = [node.key for node in setting_tree.values()]
+    assert len(tree_traversal) == 10
+    assert tree_traversal == ["dict_type", "foo", "spam", 0, 1, 2, "list_type", 0, 1, 2]
+
+
+def test_traverse_tree_keys():
+    setting_tree = SettingTree()
+    data = {
+        "dict_type": {"foo": "bar", "spam": ["egg1", "egg2", "egg3"]},
+        "list_type": ["a", True, 123],
+    }
+    setting_tree.populate(data)
+    tree_traversal = [tree_path for tree_path in setting_tree.keys()]
+    assert len(tree_traversal) == 10
+    assert tree_traversal == [
+        ("root", "dict_type"),
+        ("root", "dict_type", "foo"),
+        ("root", "dict_type", "spam"),
+        ("root", "dict_type", "spam", 0),
+        ("root", "dict_type", "spam", 1),
+        ("root", "dict_type", "spam", 2),
+        ("root", "list_type"),
+        ("root", "list_type", 0),
+        ("root", "list_type", 1),
+        ("root", "list_type", 2),
+    ]
+
+
+def test_traverse_tree_items():
+    setting_tree = SettingTree()
+    data = {
+        "dict_type": {"foo": "bar", "spam": ["egg1", "egg2", "egg3"]},
+        "list_type": ["a", True, 123],
+    }
+    setting_tree.populate(data)
+    tree_traversal = [
+        (tree_path, node.element.raw_value) for tree_path, node in setting_tree.items()
+    ]
+    assert len(tree_traversal) == 10
+    assert tree_traversal == [
+        (("root", "dict_type"), {}),
+        (("root", "dict_type", "foo"), "bar"),
+        (("root", "dict_type", "spam"), []),
+        (("root", "dict_type", "spam", 0), "egg1"),
+        (("root", "dict_type", "spam", 1), "egg2"),
+        (("root", "dict_type", "spam", 2), "egg3"),
+        (("root", "list_type"), []),
+        (("root", "list_type", 0), "a"),
+        (("root", "list_type", 1), True),
+        (("root", "list_type", 2), 123),
+    ]

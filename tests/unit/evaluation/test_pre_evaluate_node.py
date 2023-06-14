@@ -2,8 +2,8 @@ from typing import Any, NamedTuple
 
 import pytest
 
-from configx.actions.evaluation.main import pre_evaluate_node, pre_evaluate_tree
-from configx.actions.evaluation.processors import get_processor
+from configx.services.evaluation.evaluate import pre_evaluate_node, pre_evaluate_tree
+from configx.services.evaluation.processors_core import get_processor
 from configx.core.setting_tree import Node, SettingTree
 from configx.types import NOT_EVALUATED, LazyValue, RawProcessor, SimpleTypes
 

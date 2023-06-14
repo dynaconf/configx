@@ -1,5 +1,4 @@
-# Scratch Dynaconf
+# Configx draft
 
-Here I'll experiment trying to implement dynaconf from scratch,
-so I can test the design solutions I have in mind for it.
+Draft project for configx.
 

@@ -31,7 +31,7 @@ from collections import defaultdict
 from graphlib import CycleError, TopologicalSorter
 from typing import TYPE_CHECKING, Any, Generator, Sequence, TypeAlias
 
-from configx.actions.evaluation.processors import (
+from configx.services.evaluation.processors_core import (
     SUBSTITUTION_OPERATORS,
     build_context_from_tree,
     get_processor,

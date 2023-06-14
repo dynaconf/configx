@@ -1,13 +1,13 @@
 import pytest
 
 from configx.core.setting_tree import SettingTree
-from configx.actions.evaluation._main_old import (
+from configx.services.evaluation._main_old import (
     _apply_converter_chain,
     _parse_token_symbols,
     evaluate_subtree,
     tree_to_dict,
 )
-from configx.actions.evaluation.builtin_processors import get_processor
+from configx.services.evaluation.builtin_processors import get_processor
 from configx.exceptions import TokenError
 from configx.utils import (
     convert_dot_notation_to_tree_path,
