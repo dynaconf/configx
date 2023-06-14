@@ -20,7 +20,8 @@ from configx.types import (
     TreeMap,
     TreePath,
 )
-from configx.utils import print_header
+from configx.utils.general_utils import print_header
+from configx.utils.tree_utils import assure_tree_path
 
 
 def main():
@@ -315,26 +316,6 @@ class SettingTree:
 
     def __len__(self):
         return len(self._internal_cache) - 1
-
-
-def assure_tree_path(path_or_node: TreePath | Node) -> TreePath:
-    """
-    Convenience: gets TreePath from node or bypasses if already TreePath
-    """
-    n = path_or_node
-    return n if isinstance(n, tuple) else n.path
-
-
-def tree_to_dict(node: Node) -> dict:
-    """
-    Converts a SettingTree to python structure (list and dicts).
-
-    Args:
-        node: the root node of the subtree to be converted
-    Raises:
-        NotEvaluatedError: tree has nodes without evaluation
-    """
-    ...
 
 
 if __name__ == "__main__":

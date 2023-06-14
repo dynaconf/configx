@@ -16,7 +16,7 @@ from configx.types import (
     SimpleTypes,
     TreePath,
 )
-from configx.utils import normalize_compound_type
+from configx.utils.general_utils import normalize_compound_type
 
 
 class PathNotFoundError(Exception):

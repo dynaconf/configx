@@ -4,7 +4,7 @@ General utilities. These should probably be more specific.
 import re
 from types import SimpleNamespace
 
-from configx.types import CompoundTypes, TreePath
+from configx.types import CompoundTypes
 
 
 def normalize_compound_type(compound: CompoundTypes):
@@ -42,44 +42,6 @@ def get_template_variables(string: str):
     return tuple(result)
 
 
-def convert_dot_notation_to_tree_path(string: str):
-    """
-    Converts dot notation string to TreePath object.
-    """
-    return TreePath(string.split("."))
-
-
-def convert_tree_path_to_dot_notation(tree_path: TreePath):
-    """
-    Converts a TreePath object to dot notation string.
-    """
-    return ".".join([str(v) for v in tree_path])
-
-
-def template_dependencies_in_context(
-    template_string: str, context: dict[tuple[str, ...], str]
-):
-    """
-    Checks if template dependencies (text surrounded by single/double curly braces)
-    are present in the context, or if there are no dependencies.
-
-    Examples:
-        >>> context = {("this", "value"): "world"}
-        >>> template_dependencies_in_context("hello { this.value }", context)
-        True
-        >>> template_dependencies_in_context("hello { this.falsy }", context)
-        False
-    """
-    dependencies = get_template_variables(template_string)
-    dependencies = [convert_dot_notation_to_tree_path(e) for e in dependencies]
-    try:
-        for dep in dependencies:
-            context[dep]
-        return True
-    except KeyError:
-        return False
-
-
 def dict_to_simple_namespace(data: dict):
     """
     Transforms a dict into a SimpleNamespace object with dot notation access.
@@ -89,7 +51,6 @@ def dict_to_simple_namespace(data: dict):
     return obj
 
 
-# TODO implement this
 def _dict_to_simple_namespace(data: dict, obj: SimpleNamespace, path: str = ""):
     """
     Recursive function to add dict entries as SimpleNamespaces into obj.
@@ -111,3 +72,4 @@ def print_header(title: str, substitle: str = ""):
     if substitle:
         print(substitle)
     print()
+

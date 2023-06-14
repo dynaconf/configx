@@ -1,11 +1,16 @@
+"""
+Tests the correctness of evaluation:pre_evaluate_node(node) by checking:
+    - the Setting object state after execution
+    - returned dependency_edges
+"""
 from typing import Any, NamedTuple
 
 import pytest
 
-from configx.services.evaluation.evaluate import pre_evaluate_node, pre_evaluate_tree
+from configx.core.setting_tree import SettingTree
+from configx.services.evaluation.evaluate import pre_evaluate_node
 from configx.services.evaluation.processors_core import get_processor
-from configx.core.setting_tree import Node, SettingTree
-from configx.types import NOT_EVALUATED, LazyValue, RawProcessor, SimpleTypes
+from configx.types import NOT_EVALUATED, LazyValue, TreePath
 
 
 class TestCase(NamedTuple):
@@ -21,14 +26,14 @@ class TestCase(NamedTuple):
                 string = @lazy_string
             )
         set node.setting.real_value: @real_value
-        return depenendcy_edges (len == @dependecy_edges_len)
+        return @depenendcies of Node
     """
 
     input: str
     lazy_processor_names: list[str]
     lazy_string: str
     real_value: Any
-    dependecy_edges_len: int = 0
+    dependencies: list[TreePath] = []
 
 
 casting_testcases = {
@@ -38,59 +43,59 @@ casting_testcases = {
     "cast-bool-true": TestCase("@bool false", ["bool"], "false", False),
 }
 
-# composability_testcases = {
-#     "compound-int-format": TestCase(
-#         input="@int @format 123", raw=(getcon("int"), getcon("format"), "123"), real=123
-#     ),
-#     "compound-int-jinja": TestCase(
-#         input="@int @jinja 123", raw=(getcon("int"), getcon("jinja"), "123"), real=123
-#     ),
-#     "compound-int-jinja": TestCase(
-#         input="@int @jinja 123", raw=(getcon("int"), getcon("jinja"), "123"), real=123
-#     ),
-# }
+composability_testcases = {
+    "compound-int-format": TestCase("@int @format 123", ["int", "format"], "123", 123),
+    "compound-int-jinja": TestCase("@int @jinja 123", ["int", "jinja"], "123", 123),
+    "compound-int-jinja": TestCase("@int @jinja 123", ["int", "jinja"], "123", 123),
+}
 
-# dependency_format_testcases = {
-#     "dependency-format-one-sub": TestCase(
-#         input="@format {this.foo.bar}",
-#         raw=(getcon("format"), "{this['foo']['bar']}"),
-#         real=NOT_EVALUATED,
-#         dep_graph_len=1,
-#     ),
-#     "dependency-format-two-subs": TestCase(
-#         input="@format {this.foo.bar} {this.spam.eggs}",
-#         raw=(getcon("format"), "{this['foo']['bar']} {this['spam']['eggs']}"),
-#         real=NOT_EVALUATED,
-#         dep_graph_len=2,
-#     ),
-#     "dependency-format-list-type": TestCase(
-#         input="@format {this.foo.0}",
-#         raw=(getcon("format"), "{this['foo'][0]}"),
-#         real=NOT_EVALUATED,
-#         dep_graph_len=1,
-#     ),
-# }
+dependency_format_testcases = {
+    "dependency-format-one-substitution": TestCase(
+        input="@format {this.foo.bar}",
+        lazy_processor_names=["format"],
+        lazy_string="{this.foo.bar}",
+        real_value=NOT_EVALUATED,
+        dependencies=[("this", "foo", "bar")],
+    ),
+    "dependency-format-two-substitutions": TestCase(
+        input="@format {this.foo.bar} {this.spam.eggs}",
+        lazy_processor_names=["format"],
+        lazy_string="{this.foo.bar} {this.spam.eggs}",
+        real_value=NOT_EVALUATED,
+        dependencies=[("this", "foo", "bar"), ("this", "spam", "eggs")],
+    ),
+    "dependency-format-sub-with-list-access": TestCase(
+        input="@format {this.foo.0}",
+        lazy_processor_names=["format"],
+        lazy_string="{this.foo.0}",
+        real_value=NOT_EVALUATED,
+        dependencies=[("this", "foo", 0)],
+    ),
+}
 
-# dependency_jinja_testcases = {
-#     "dependency-jinja-one-sub": TestCase(
-#         input="@jinja {{ this.foo.bar }}",
-#         raw=(getcon("jinja"), "{{ this['foo']['bar'] }}"),
-#         real=NOT_EVALUATED,
-#         dep_graph_len=1,
-#     ),
-#     "dependency-jinja-two-subs": TestCase(
-#         input="@jinja {{ this.foo.bar }} {{ this.spam.eggs }}",
-#         raw=(getcon("jinja"), "{this['foo']['bar']} {this['spam']['eggs']}"),
-#         real=NOT_EVALUATED,
-#         dep_graph_len=2,
-#     ),
-#     "dependency-jinja-list-type": TestCase(
-#         input="@jinja {{ this.foo.0 }}",
-#         raw=(getcon("jinja"), "{{ this['foo'][0] }}"),
-#         real=NOT_EVALUATED,
-#         dep_graph_len=1,
-#     ),
-# }
+dependency_jinja_testcases = {
+    "dependency-jinja-one-substitution": TestCase(
+        input="@jinja {{ this.foo.bar }}",
+        lazy_processor_names=["jinja"],
+        lazy_string="{{ this.foo.bar }}",
+        real_value=NOT_EVALUATED,
+        dependencies=[("this", "foo", "bar")],
+    ),
+    "dependency-jinja-two-substitution": TestCase(
+        input="@jinja {{ this.foo.bar }} {{ this.spam.eggs }}",
+        lazy_processor_names=["jinja"],
+        lazy_string="{{ this.foo.bar }} {{ this.spam.eggs }}",
+        real_value=NOT_EVALUATED,
+        dependencies=[("this", "foo", "bar")],
+    ),
+    "dependency-jinja-list-type": TestCase(
+        input="@jinja {{ this.foo.0 }}",
+        lazy_processor_names=["jinja"],
+        lazy_string="{{ this.foo.0 }}",
+        real_value=NOT_EVALUATED,
+        dependencies=[("this", "foo", 0)],
+    ),
+}
 
 
 def use_testcase(data: dict[str, TestCase]):
@@ -104,7 +109,7 @@ def use_testcase(data: dict[str, TestCase]):
 
 @pytest.mark.parametrize(*use_testcase(casting_testcases))
 def test_pre_evaluate_node__casting(
-    input, lazy_string, lazy_processor_names, real_value, dependecy_edges_len
+    input, lazy_string, lazy_processor_names, real_value, dependencies
 ):
     setting_tree = SettingTree()
     setting_tree.populate({"value": input})
@@ -118,7 +123,7 @@ def test_pre_evaluate_node__casting(
         get_processor(c) for c in lazy_processor_names
     ]
     assert node.element.real_value == real_value
-    assert len(dependency_edges) == dependecy_edges_len
+    assert len(dependency_edges) == 0
 
 
 # @pytest.mark.parametrize(*use_testcase(composability_testcases))
@@ -141,38 +146,38 @@ def test_pre_evaluate_node__composability(input, raw, real, dep_graph_len):
 
 # @pytest.mark.parametrize(*use_testcase(dependency_format_testcases))
 @pytest.mark.skip
-def test_pre_evaluate_node__format(input, raw, real, dep_graph_len):
-    """
-    Given input
-    Expect Setting state (raw and real values) and dependencies length
-    """
+def test_pre_evaluate_node__format(
+    input, lazy_processor_names, lazy_string, real_value, dependencies
+):
     setting_tree = SettingTree()
     setting_tree.populate({"value": input})  # type: ignore (why?)
     node = setting_tree.get_node(("value",))
 
-    dependency_graph = pre_evaluate_node(node)
+    dependency_edges = pre_evaluate_node(node)
+    result_dependencies = [d.depends_on for d in dependency_edges]
 
-    assert node.element.raw_value == raw
-    assert node.element.real_value == real
-    assert len(dependency_graph) == dep_graph_len
+    assert isinstance(node.element.raw_value, LazyValue)
+    assert node.element.raw_value.string == lazy_string
+    assert node.element.real_value == real_value
+    assert result_dependencies == dependencies
 
 
 # @pytest.mark.parametrize(*use_testcase(dependency_jinja_testcases))
 @pytest.mark.skip
-def test_pre_evaluate_node__jinja(input, raw, real, dep_graph_len):
-    """
-    Given input
-    Expect Setting state (raw and real values) and dependencies length
-    """
+def test_pre_evaluate_node__jinja(
+    input, lazy_processor_names, lazy_string, real_value, dependencies
+):
     setting_tree = SettingTree()
     setting_tree.populate({"value": input})  # type: ignore (why?)
     node = setting_tree.get_node(("value",))
 
-    dependency_graph = pre_evaluate_node(node)
+    dependency_edges = pre_evaluate_node(node)
+    result_dependencies = [d.depends_on for d in dependency_edges]
 
-    assert node.element.raw_value == raw
-    assert node.element.real_value == real
-    assert len(dependency_graph) == dep_graph_len
+    assert isinstance(node.element.raw_value, LazyValue)
+    assert node.element.raw_value.string == lazy_string
+    assert node.element.real_value == real_value
+    assert result_dependencies == dependencies
 
 
 # TODO add testcases for failure
