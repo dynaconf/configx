@@ -165,6 +165,21 @@ python-dateutil = ">=2.8.1"
 dev = ["flake8", "markdown", "twine", "wheel"]
 
 [[package]]
+name = "griffe"
+version = "0.29.0"
+description = "Signatures for entire Python programs. Extract the structure, the frame, the skeleton of your project, to generate API documentation or find breaking changes in your API."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "griffe-0.29.0-py3-none-any.whl", hash = "sha256:e62ff34b04630c2382e2e277301cb2c29221fb09c04028e62ef35afccc64344b"},
+    {file = "griffe-0.29.0.tar.gz", hash = "sha256:6fc892aaa251b3761e3a8d2f5893758e1850ec5d81d4605c4557be0666202a0b"},
+]
+
+[package.dependencies]
+colorama = ">=0.4"
+
+[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -390,12 +405,29 @@ Markdown = ">=3.3"
 MarkupSafe = ">=1.1"
 mkdocs = ">=1.2"
 mkdocs-autorefs = ">=0.3.1"
+mkdocstrings-python = {version = ">=0.5.2", optional = true, markers = "extra == \"python\""}
 pymdown-extensions = ">=6.3"
 
 [package.extras]
 crystal = ["mkdocstrings-crystal (>=0.3.4)"]
 python = ["mkdocstrings-python (>=0.5.2)"]
 python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
+
+[[package]]
+name = "mkdocstrings-python"
+version = "1.1.2"
+description = "A Python handler for mkdocstrings."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "mkdocstrings_python-1.1.2-py3-none-any.whl", hash = "sha256:c2b652a850fec8e85034a9cdb3b45f8ad1a558686edc20ed1f40b4e17e62070f"},
+    {file = "mkdocstrings_python-1.1.2.tar.gz", hash = "sha256:f28bdcacb9bcdb44b6942a5642c1ea8b36870614d33e29e3c923e204a8d8ed61"},
+]
+
+[package.dependencies]
+griffe = ">=0.24"
+mkdocstrings = ">=0.20"
 
 [[package]]
 name = "packaging"
@@ -750,4 +782,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "9ba31d0c67c962675d0720d495c1b0b7d3f5c81d667475e797a4f7ca376c7db5"
+content-hash = "c3c2aa3af786685115f8c8090484f1f2f40cf5fc2c51acb0fc7b60bd0cee0c2c"

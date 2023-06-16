@@ -1,11 +1,12 @@
 site_name: ConfigX
 
 nav:
-  - Welcome:
+  - Home:
     - "home/index.md"
-    - Overview: "home/index.md"
-    - Getting Started: "home/getting-started.md"
-    - FAQ: ""
+    - Introduction:
+      - Motivation: ""
+      - Getting Started: "home/getting-started.md"
+      - FAQ: ""
     - Features:
       - Validation: ""
       - Multi-sources: ""
@@ -31,11 +32,18 @@ nav:
       - FastApi:
         - Setup: ""
         - Using FastApi: ""
-    - Reference:
+
+  - Reference:
+    - For Users:
       - Setting Object: "user/reference/setting_object.md"
       - Validation: ""
       - Loaders: ""
       - Lazy Evaluation: ""
+    - For devs:
+      - Public: "dev/api/lib_shell.md"
+      - Operators: ""
+      - I/O: ""
+      - Services: ""
 
   - Development: 
     - "dev/index.md"
@@ -50,11 +58,6 @@ nav:
       - Code Standards: ""
       - Git workflows: ""
       - Testing: ""
-    - API Reference:
-      - Public: "dev/api/lib_shell.md"
-      - Operators: ""
-      - I/O: ""
-      - Services: ""
 
 theme:
   name: material
