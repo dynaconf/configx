@@ -2,6 +2,10 @@
 Shared exceptions for the project.
 """
 
+from typing import Sequence
+
+from configx.types import TreePath
+
 # SettingTree
 
 
@@ -29,7 +33,11 @@ class LazyValueFound(Exception):
 
 
 class MissingContextValue(Exception):
-    pass
+    """Raises when context does not have required dependency"""
+
+    def __init__(self, dependencies: Sequence[TreePath], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dependencies = dependencies
 
 
 class InvalidTokenError(Exception):

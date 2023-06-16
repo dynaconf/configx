@@ -1,19 +1,23 @@
-[project]
-name = "configx"
-description = "Dynaconf re-write"
-version = "0.0.0"
-requires-python = ">=3.11"
-dependencies = []
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[project.optional-dependencies]
-dev = [
-  "pytest",
-  "mkdocs-material",
-  "mkdocstrings[python]",
-  # "tox",
-  # "pre-commit",
-  # "bump2version"
-]
+[tool.poetry]
+name = "configx"
+version = "0.1.0"
+description = "Configuration Management"
+authors = ["Bruno Rocha <rochacbruno@gmail.com>", "Pedro Pessoa <pedropsb95@gmail.com>"]
+license = "LICENSE.md"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+mkdocstrings = "^0.22.0"
+mkdocs-material = "^9.1.16"
+pytest = "^7.3.2"
+dynaconf = "^3.1.12"
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]

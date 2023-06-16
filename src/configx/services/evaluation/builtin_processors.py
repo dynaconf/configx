@@ -11,6 +11,8 @@ import jinja2
 
 from configx.exceptions import MissingContextValue
 from configx.types import MISSING, ContextObject
+from configx.utils.evaluation_utils import get_template_variables
+from configx.utils.tree_utils import str_to_tree_path
 
 
 def bypass_processor(raw_string: str, context: ContextObject = MISSING) -> Any:
@@ -28,13 +30,14 @@ def jinja_formatter(raw_string: str, context: ContextObject):
         )
 
 
-def format_formatter(raw_string: str, context: dict):
+def format_formatter(raw_string: str, context: ContextObject):
+    dependencies = get_template_variables(raw_string)
     try:
-        return raw_string.format(context)
-    except KeyError:
-        raise MissingContextValue(
-            f"value: {repr(raw_string)} is not available in the context yet."
-        )
+        return raw_string.format(this=context)
+    except KeyError as err:
+        msg = f"value: {raw_string!r} is not available in the context"
+        dependencies = [str_to_tree_path(s) for s in dependencies]
+        raise MissingContextValue(dependencies, msg)
 
 
 def bash_formatter(raw_string: str, context: ContextObject):

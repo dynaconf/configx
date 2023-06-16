@@ -1,17 +1,19 @@
 import re
+from typing import Sequence
+
+from configx.types import TreePath
 
 
-def get_template_variables(string: str):
+def get_template_variables(string: str, as_tree_path: bool = False) -> Sequence[str]:
     """
-    Get cleaned template variables from text surrounded by
-    single or double curly braces.
+    Get substitution dependencies and strips whitespace.
+    If not present returns []
+
     Examples:
         >>> string = "foo { some.variable } bar {{ another.variable }}"
         >>> get_template_variables(string)
-        ("some.variable", "another.variable")
+        ["some.variable", "another.variable"]
     """
-    pattern = r"(\{[\w\d\s\.]*\}|\{\{[\w\d\s\.]*\}\})"
+    pattern = r"\{([^{}]*)\}"
     result = re.findall(pattern, string)
-    for i, e in enumerate(result):
-        result[i] = re.sub(r"[\{|\}]{1,3}", "", e).strip()
-    return tuple(result)
+    return [v.strip() for v in result]

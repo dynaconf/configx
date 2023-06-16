@@ -5,11 +5,12 @@ functionality.
 from __future__ import annotations
 
 from inspect import isfunction
+from types import SimpleNamespace
 from typing import Sequence
 
-from configx.services.evaluation import builtin_processors
 from configx.core.setting_tree import SettingTree
 from configx.exceptions import TokenError
+from configx.services.evaluation import builtin_processors
 from configx.types import MISSING, ContextObject, RawProcessor, TreePath
 
 _raw_processors: dict[str, RawProcessor] = {}
@@ -51,4 +52,18 @@ def build_context_from_tree(
 def build_context_from_dict(
     dict_data: dict, filter_by_paths: Sequence[TreePath] = MISSING
 ) -> ContextObject:
-    ...
+    context = ContextObject()
+
+    def recurse(value):
+        match value:
+            case list():
+                for k, v in enumerate(value):
+                    setattr(context, f"_{k}", recurse(v))
+            case dict():
+                for k, v in value.items():
+                    setattr(context, k, recurse(v))
+            case _:
+                return value
+
+    recurse(dict_data)
+    return context

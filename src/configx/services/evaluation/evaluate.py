@@ -31,6 +31,8 @@ from collections import defaultdict
 from graphlib import CycleError, TopologicalSorter
 from typing import TYPE_CHECKING, Any, Generator, Sequence, TypeAlias
 
+from dynaconf.utils.parse_conf import re
+
 from configx.services.evaluation.processors_core import (
     SUBSTITUTION_OPERATORS,
     build_context_from_tree,
@@ -44,6 +46,7 @@ from configx.types import (
     TreePath,
     TreePathGraph,
 )
+from configx.utils.evaluation_utils import get_template_variables
 
 if TYPE_CHECKING:
     from configx.core.setting_tree import Node, SettingTree
@@ -123,7 +126,7 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     # apply parser functions if no dependencies
     dependencies = []
     if SUBSTITUTION_OPERATORS in lazy_value.operators:
-        dependencies = _get_substitution_dependencies(lazy_value.string)
+        dependencies = get_template_variables(lazy_value.string)
 
     dependencie_edges = []
     if not dependencies:
@@ -151,11 +154,6 @@ def _parse_raw_to_lazy_value(string_with_token: str) -> LazyValue:
     #     converters = [get_processor(t) for t in tokens]
     placeholder = get_processor("bypass")
     return LazyValue([placeholder], string_with_token)
-
-
-def _get_substitution_dependencies(string: str) -> Sequence[TreePath]:
-    """Get substitution dependencies, otherwise returns []"""
-    ...
 
 
 def _apply_lazy_processors(lazy_value: LazyValue, context: ContextObject = MISSING):
