@@ -30,10 +30,16 @@ assignees: ''
 
 {example | description | pointer to more information | …}
 
-* Good, because {argument a}
-* Neutral, because {argument c}
-* Bad, because {argument d}
+```
+[Pros]
+- {argument a}
 
+[Cons]
+- {argument c}
+
+[Neutral]
+- {argument b}
+```
 
 <!-- For final record only  -->
 <!-- ## Decision Outcome  -->
