@@ -1,4 +1,3 @@
-# Configx draft
+# configx
 
-Draft project for configx.
-
+[WIP] ConfigX - Settings Management
