@@ -1,0 +1,32 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "configx"
+version = "0.1.0"
+description = "Configuration Management"
+authors = ["Bruno Rocha <rochacbruno@gmail.com>", "Pedro Pessoa <pedropsb95@gmail.com>"]
+license = "LICENSE.md"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+mkdocs-material = "^9.1.16"
+mkdocstrings = {extras = ["python"], version = "^0.22.0"}
+pytest = "^7.3.2"
+dynaconf = {git="https://github.com/dynaconf/dynaconf.git", branch="master"}
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+pythonpath = "src"
+markers = [
+    "utils: internal utilities/implementation details",
+    "module_api: high-level internal api (services and core)",
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+
