@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from configx.types import TreePath
+from contextlib import suppress
 
 if TYPE_CHECKING:
     from configx.core.setting_tree import Node
@@ -23,7 +24,13 @@ def str_to_tree_path(string: str):
     """
     Converts dot notation string to TreePath object.
     """
-    return TreePath(string.split("."))
+    tree_path = []
+    for s in string.split("."):
+        with suppress(ValueError):
+            s = int(s) # type: ignore
+        tree_path.append(s)
+
+    return TreePath(tree_path)
 
 
 def tree_path_to_str(tree_path: TreePath):

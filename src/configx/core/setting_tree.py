@@ -47,18 +47,37 @@ def main():
 
     print_header("for node in setting_tree (iteration)")
     for node in setting_tree:
-        print(node.dot_path, node.element.raw_value)
+        print(node.dot_path, node.element._raw_value)
 
 
 @dataclass
 class Setting:
     path: TreePath
-    raw_value: PrimitiveTypes | LazyValue
+    _raw_value: PrimitiveTypes | LazyValue
+    lazy_value: LazyValue = MISSING
     real_value: Any = NOT_EVALUATED
 
     @property
+    def raw_value(self):
+        return self._raw_value
+
+    # @raw_value.setter
+    # def raw_value(self, value):
+    #     """Enforce correct value state"""
+    #     match value:
+    #         case str() if value.startswith("@"):
+    #             self._raw_value = value
+    #         case _:
+    #             self._raw_value = MISSING
+    #             self.real_value = value
+
+    @property
     def is_leaf(self):
-        return isinstance(type(self.raw_value), CompoundTypes)
+        return isinstance(type(self._raw_value), CompoundTypes)
+
+    @property
+    def value(self):
+        pass
 
 
 @dataclass
@@ -112,10 +131,6 @@ class Node:
     @property
     def is_evaluated(self) -> bool:
         return self.element.real_value is not NOT_EVALUATED
-
-    @property
-    def is_pre_evaluated(self) -> bool:
-        return isinstance(self.element.raw_value, LazyValue)
 
     @property
     def path(self):
@@ -191,7 +206,7 @@ class SettingTree:
         self, path: TreePath, raw_value: SimpleTypes | CompoundTypes, parent: Node
     ):
         """
-        Resursively create Node/Setting from python objects
+        Resursively create Node/Setting from python objects (dict, list)
         """
         # basecase: leaf-node
         if isinstance(raw_value, SimpleTypes):
@@ -303,7 +318,7 @@ class SettingTree:
         """
         spacing = "  " * depth
         setting_name = repr(node.element.path[-1])
-        setting_value = repr(node.element.raw_value) if not debug else node
+        setting_value = repr(node.element._raw_value) if not debug else node
         print("{}{}: {}".format(spacing, setting_name, setting_value))
         for n in node.children:
             self._show_tree(n, depth + 1, debug)

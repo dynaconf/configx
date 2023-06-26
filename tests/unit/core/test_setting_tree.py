@@ -14,7 +14,7 @@ def test_populate_simple_types():
     st.populate({"name": "foo", "age": 123})
     assert len(st) == 2
     assert len(st.root.children) == 2
-    assert st.get_setting(("name",)).raw_value == "foo"
+    assert st.get_setting(("name",))._raw_value == "foo"
     assert ("root", "name") in st._internal_cache
 
     # override safeguard
@@ -23,7 +23,7 @@ def test_populate_simple_types():
 
     assert len(st) == 2
     assert len(st.root.children) == 2
-    assert st.get_setting(("name",)).raw_value == "foo"
+    assert st.get_setting(("name",))._raw_value == "foo"
 
 
 def test_populate_compound_types():
@@ -39,18 +39,18 @@ def test_populate_compound_types():
 
     assert len(setting_tree) == 10
     assert setting_tree.get_setting(("dict_type",)).is_leaf is False
-    assert setting_tree.get_setting(("dict_type", "foo")).raw_value == "bar"
-    assert setting_tree.get_setting(("dict_type", "spam", 0)).raw_value == "egg1"
+    assert setting_tree.get_setting(("dict_type", "foo"))._raw_value == "bar"
+    assert setting_tree.get_setting(("dict_type", "spam", 0))._raw_value == "egg1"
 
     assert setting_tree.get_setting(("list_type",)).is_leaf is False
-    assert setting_tree.get_setting(("list_type", 0)).raw_value == "a"
-    assert setting_tree.get_setting(("list_type", 1)).raw_value is True
-    assert setting_tree.get_setting(("list_type", 2)).raw_value == 123
+    assert setting_tree.get_setting(("list_type", 0))._raw_value == "a"
+    assert setting_tree.get_setting(("list_type", 1))._raw_value is True
+    assert setting_tree.get_setting(("list_type", 2))._raw_value == 123
 
     # populate different branch
     setting_tree.populate({"hello": "world"})
     assert len(setting_tree) == 11
-    assert setting_tree.get_setting(("hello",)).raw_value == "world"
+    assert setting_tree.get_setting(("hello",))._raw_value == "world"
 
     # override safeguard
     with pytest.raises(ChildAlreadyExist):
@@ -104,7 +104,7 @@ def test_traverse_tree_items():
     }
     setting_tree.populate(data)
     tree_traversal = [
-        (tree_path, node.element.raw_value) for tree_path, node in setting_tree.items()
+        (tree_path, node.element._raw_value) for tree_path, node in setting_tree.items()
     ]
     assert len(tree_traversal) == 10
     assert tree_traversal == [

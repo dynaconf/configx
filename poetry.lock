@@ -131,20 +131,24 @@ description = "The dynamic configurator for your Python Project"
 category = "dev"
 optional = false
 python-versions = ">=3.8"
-files = [
-    {file = "dynaconf-3.1.12-py2.py3-none-any.whl", hash = "sha256:a79d7b3ad4a35af9b576c49f11cd3b23a1b04b87b63a4e9f92cc82f2b0cafeeb"},
-    {file = "dynaconf-3.1.12.tar.gz", hash = "sha256:11a60bcd735f82b8a47b288f99e4ffbbd08c6c130a7be93c5d03e93fc260a5e1"},
-]
+files = []
+develop = false
 
 [package.extras]
 all = ["configobj", "hvac", "redis", "ruamel.yaml"]
 configobj = ["configobj"]
 ini = ["configobj"]
 redis = ["redis"]
-test = ["codecov", "configobj", "django", "flake8", "flake8-debugger", "flake8-print", "flake8-todo", "flask (>=0.12)", "hvac", "pep8-naming", "pytest", "pytest-cov", "pytest-mock", "pytest-xdist", "python-dotenv", "radon", "redis", "toml"]
+test = ["configobj", "django", "flake8", "flake8-debugger", "flake8-print", "flake8-todo", "flask (>=0.12)", "hvac", "pep8-naming", "pytest", "pytest-cov", "pytest-mock", "pytest-xdist", "python-dotenv", "radon", "redis", "toml"]
 toml = ["toml"]
 vault = ["hvac"]
 yaml = ["ruamel.yaml"]
+
+[package.source]
+type = "git"
+url = "https://github.com/dynaconf/dynaconf.git"
+reference = "master"
+resolved_reference = "f0d966589e5016b8051555a583db5cf3ab555938"
 
 [[package]]
 name = "ghp-import"
@@ -782,4 +786,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "c3c2aa3af786685115f8c8090484f1f2f40cf5fc2c51acb0fc7b60bd0cee0c2c"
+content-hash = "c8b4db78bcf4b98ac4814eb2fdc8e483e34ebf9c8a8056f8bf993ff7baccf303"

@@ -4,7 +4,8 @@ Shared Types for the project.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, NamedTuple, Protocol, Sequence, TypeAlias
+from typing import (TYPE_CHECKING, Any, NamedTuple, Protocol, Sequence,
+                    TypeAlias)
 
 if TYPE_CHECKING:
     from configx.core.setting_tree import Node
@@ -76,7 +77,7 @@ class RawProcessor(Protocol):
     optionaly using a context object.
     """
 
-    def __call__(self, raw_string: str, context: ContextObject = MISSING) -> None:
+    def __call__(self, raw_string: str, context: dict = MISSING) -> None:
         ...
 
 

@@ -7,7 +7,7 @@ from configx.services.evaluation.processors_core import build_context_from_tree
 def _pre_evaluate_tree_mock(setting_tree: SettingTree):
     """Writes real values as if it was already pre-evaluated"""
     for node in setting_tree:
-        node.element.real_value = node.element.raw_value
+        node.element.real_value = node.element._raw_value
 
 
 def test_build_context_from_tree_no_filter():
