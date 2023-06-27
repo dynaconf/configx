@@ -20,38 +20,22 @@ from configx.types import (
     TreeMap,
     TreePath,
 )
-from configx.utils.general_utils import print_header
 from configx.utils.tree_utils import assure_tree_path
-
-
-def main():
-    """Usage samples"""
-    data = {
-        "a": "A",
-        "listy": [1, 2, {"b": [3, 4]}],
-        "dicty": {"c": "C", "d": [5, 6, {"e": "E"}]},
-    }
-    setting_tree = SettingTree()
-    setting_tree.populate(data)
-
-    print_header("show_tree")
-    setting_tree.show_tree()
-
-    print_header("show_map")
-    setting_tree.show_map()
-
-    print_header("print(get_setting)")
-    print(setting_tree.get_setting(("a",)))
-    print(setting_tree.get_setting(("listy", 2, "b", 1)))
-    print(setting_tree.get_setting(("dicty", "d", 2, "e")))
-
-    print_header("for node in setting_tree (iteration)")
-    for node in setting_tree:
-        print(node.dot_path, node.element._raw_value)
 
 
 @dataclass
 class Setting:
+    """
+    TODO
+    - make each field allow only for one type or MISSING, because:
+        1) it will be easier to check state
+        2) optionally keeping old values (eg, keeping raw_value when there is a
+           final_value) may allow for fresh re-evaluations, as a final_value cannot
+           be reverted to raw_value.
+        3) on the other hand, Lazy and Raw are reversible, so it may not be worth
+           keeping them both.
+    """
+
     path: TreePath
     _raw_value: PrimitiveTypes | LazyValue
     lazy_value: LazyValue = MISSING
@@ -60,16 +44,6 @@ class Setting:
     @property
     def raw_value(self):
         return self._raw_value
-
-    # @raw_value.setter
-    # def raw_value(self, value):
-    #     """Enforce correct value state"""
-    #     match value:
-    #         case str() if value.startswith("@"):
-    #             self._raw_value = value
-    #         case _:
-    #             self._raw_value = MISSING
-    #             self.real_value = value
 
     @property
     def is_leaf(self):
@@ -335,7 +309,3 @@ class SettingTree:
 
     def __len__(self):
         return len(self._internal_cache) - 1
-
-
-if __name__ == "__main__":
-    exit(main())

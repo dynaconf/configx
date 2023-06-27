@@ -40,10 +40,12 @@ nav:
       - Loaders: ""
       - Lazy Evaluation: ""
     - For devs:
-      - Public: "dev/api/lib_shell.md"
-      - Operators: ""
-      - I/O: ""
-      - Services: ""
+      - Core:
+        - "reference/setting_tree.md"
+      - Services:
+        - "reference/evaluation.md"
+      - Public:
+        - "reference/lib_shell.md"
 
   - Development: 
     - "dev/index.md"

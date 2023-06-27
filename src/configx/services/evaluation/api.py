@@ -1,14 +1,17 @@
 """
-Evalution module.
-Responsible for manipulating Setting values state (raw -> lazy -> real)
-    - Trivial-evaluate: raw -> real (non-strings and not-startswith "@")
-    - Pre-evaluate: raw -> lazy
-    - Evaluate: lazy -> real
+Evalution module is responsible for resolving templating and casting of a SettingTree.
 
-Example:
+It does so by manipulating Setting values, which can be `raw`, `lazy` and
+`real`. In a conceptual level, these are the main operations over Setting values:
+
+- **Trivial-evaluate:** raw -> real (non-strings and not-startswith "@")
+- **Pre-evaluate:** raw -> lazy
+- **Lazy-evaluate:** lazy -> real
+- **Full-evaluate:** pre-evaluate + lazy-evaluate
+
+Examples:
     >>> from configx.services.evaluation.api import evaluate_tree
     >>> from configx.core.setting_tree import SettingTree
-
     >>> data = {
             "cast": "@int 123",
             "sub": "@format **{this.a}-{this.foo.b}**",
@@ -17,10 +20,7 @@ Example:
         }
     >>> st = SettingTree()
     >>> st.populate(data)
-    >>> api.evaluate_tree(
-            setting_tree=st
-        )
-
+    >>> evaluate_tree(setting_tree=st)
     >>> st.show_tree()
     "root": <dict>
         "cast": 123
@@ -37,7 +37,6 @@ from typing import TYPE_CHECKING, Sequence
 from configx.exceptions import MissingContextValue
 from configx.services.evaluation.dependency_graph import DependencyGraph
 from configx.services.evaluation.processors_core import (
-    SUBSTITUTION_OPERATORS,
     build_context_from_tree,
     get_processor,
 )
@@ -51,12 +50,7 @@ if TYPE_CHECKING:
     from configx.core.setting_tree import Node, SettingTree
 
 
-def main():
-    """Usage samples"""
-    ...
-
-
-def evaluate_tree(setting_tree: SettingTree, internal_config_tree: SettingTree):
+def evaluate_tree(setting_tree: SettingTree):
     """Evaluate a tree in-place"""
     dependency_graph = pre_evaluate_tree(setting_tree)
     evaluate_tree_dependencies(setting_tree, dependency_graph)
