@@ -1,10 +1,13 @@
 """
 Evalution module.
 Responsible for manipulating Setting values state (raw -> lazy -> real)
+    - Trivial-evaluate: raw -> real (non-strings and not-startswith "@")
+    - Pre-evaluate: raw -> lazy
+    - Evaluate: lazy -> real
 
 Example:
-    >>> import evaluate
-    >>> import SettingTree
+    >>> from configx.services.evaluation.api import evaluate_tree
+    >>> from configx.core.setting_tree import SettingTree
 
     >>> data = {
             "cast": "@int 123",
@@ -14,7 +17,7 @@ Example:
         }
     >>> st = SettingTree()
     >>> st.populate(data)
-    >>> evalution.evaluate_tree(
+    >>> api.evaluate_tree(
             setting_tree=st
         )
 
@@ -38,12 +41,11 @@ from configx.services.evaluation.processors_core import (
     build_context_from_tree,
     get_processor,
 )
-from configx.types import (
-    DependencyEdge,
-    LazyValue,
+from configx.services.evaluation.utils import (
+    _apply_lazy_processors,
+    _parse_raw_value_tokens,
 )
-from configx.services.evaluation.utils import _parse_raw_value_tokens
-from configx.services.evaluation.utils import _apply_lazy_processors
+from configx.types import DependencyEdge, LazyValue
 
 if TYPE_CHECKING:
     from configx.core.setting_tree import Node, SettingTree
@@ -92,6 +94,7 @@ def pre_evaluate_tree(setting_tree: SettingTree) -> DependencyGraph:
     dependency_graph = DependencyGraph()
     for node in setting_tree:
         edges = pre_evaluate_node(node)
+        edges = [edge for edge in edges if edge.depends_on]
         dependency_graph.add_edges(edges)
     return dependency_graph
 
@@ -116,13 +119,15 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
         - enforce non-string values are bypassed on Setting init or raw_value set.
           this should simplify raw-lazy-real state management
     """
-    # setting is not a raw_string (string with token)
+    # trivial convert: raw -> real (non-string and not-startwith @)
+    # this could be done in the SettingTree level
     if not isinstance(
         node.element._raw_value, str
     ) or not node.element._raw_value.startswith("@"):
+        node.element.real_value = node.element.raw_value
         return []
 
-    # convert raw to lazy
+    # convert: raw -> lazy
     token_names, raw_string = _parse_raw_value_tokens(node.element._raw_value)
     processor_list = [get_processor(token) for token in token_names]
     lazy_value = LazyValue(operators=processor_list, string=raw_string)
@@ -133,11 +138,9 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
     try:
         node.element.real_value = _apply_lazy_processors(lazy_value)
     except MissingContextValue as err:
-        dependency_edges = [DependencyEdge(node.path, dep) for dep in err.dependencies]
-        # could retry to evalute it here again if a setting_tree or other data source is passed
+        dependency_edges = [
+            DependencyEdge(node.path, ("root", *dep[1:])) for dep in err.dependencies
+        ]
+        # could retry to evalute it here if a setting_tree or some kind of
+        # global context is passed
     return dependency_edges
-
-
-
-
-

@@ -251,7 +251,11 @@ class SettingTree:
     def remove_node(self, new_setting: Setting, node_path: TreePath) -> Node:
         ...
 
-    def get_node(self, rootless_path: TreePath, default: Node | None = None) -> Node:
+    def get_node(self, rootless_path: TreePath, default: Node = MISSING) -> Node:
+        """
+        Get node using a TreePath identifier. Eg: ("path", "to", "node")
+        Raise NodeNotFound if not found.
+        """
         if len(rootless_path) == 0:
             raise EmptyTreePath
 
@@ -259,7 +263,7 @@ class SettingTree:
         try:
             return self._internal_cache[rooted_path]
         except KeyError:
-            if default is None:
+            if default is MISSING:
                 raise NodeNotFound(f"Node not found for path: {rooted_path}")
             return default
 

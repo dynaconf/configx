@@ -53,19 +53,19 @@ dependency_format_testcases = {
         input="@format {this.foo.bar}",
         lazy_string="{this.foo.bar}",
         real_value=NOT_EVALUATED,
-        dependencies=[("this", "foo", "bar")],
+        dependencies=[("root", "foo", "bar")],
     ),
     "two-substitutions": _TestCase(
         input="@format {this.foo.bar} {this.spam.eggs}",
         lazy_string="{this.foo.bar} {this.spam.eggs}",
         real_value=NOT_EVALUATED,
-        dependencies=[("this", "foo", "bar"), ("this", "spam", "eggs")],
+        dependencies=[("root", "foo", "bar"), ("root", "spam", "eggs")],
     ),
     "sub-with-list-access": _TestCase(
         input="@format {this.foo.0}",
         lazy_string="{this.foo.0}",
         real_value=NOT_EVALUATED,
-        dependencies=[("this", "foo", 0)],
+        dependencies=[("root", "foo", 0)],
     ),
 }
 
@@ -74,19 +74,19 @@ dependency_jinja_testcases = {
         input="@jinja {{ this.foo.bar }}",
         lazy_string="{{ this.foo.bar }}",
         real_value=NOT_EVALUATED,
-        dependencies=[("this", "foo", "bar")],
+        dependencies=[("root", "foo", "bar")],
     ),
     "two-substitution": _TestCase(
         input="@jinja {{ this.foo.bar }} {{ this.spam.eggs }}",
         lazy_string="{{ this.foo.bar }} {{ this.spam.eggs }}",
         real_value=NOT_EVALUATED,
-        dependencies=[("this", "foo", "bar"), ("this", "spam", "eggs")],
+        dependencies=[("root", "foo", "bar"), ("root", "spam", "eggs")],
     ),
     "list-type": _TestCase(
         input="@jinja {{ this.foo.0 }}",
         lazy_string="{{ this.foo.0 }}",
         real_value=NOT_EVALUATED,
-        dependencies=[("this", "foo", 0)],
+        dependencies=[("root", "foo", 0)],
     ),
 }
 

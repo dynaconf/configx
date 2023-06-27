@@ -21,7 +21,7 @@ class DependencyGraph:
         self._graph[edge.dependent].add(edge.depends_on)
 
     def add_edges(self, edges: Sequence[DependencyEdge]):
-        """Add node dependencies"""
+        """Add node dependencies. Bypass empty lists"""
         for edge in edges:
             self.add_edge(edge)
 
