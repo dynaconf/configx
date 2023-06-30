@@ -1,9 +1,8 @@
-from configx.types import DependencyEdge, TreePath, TreePathGraph
-
-
 from collections import defaultdict
 from graphlib import TopologicalSorter
 from typing import Any, Generator, Sequence
+
+from configx.types import DependencyEdge, TreePath, TreePathGraph
 
 
 class DependencyGraph:

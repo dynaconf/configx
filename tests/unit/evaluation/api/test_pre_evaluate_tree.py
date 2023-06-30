@@ -1,11 +1,13 @@
 """
 Tests the correctness of evaluation:pre_evaluate_tree(setting_tree) by checking:
-    - ...
+    - trivial conversions: raw -> real
+    - lazy conversions: raw -> lazy
+    - correct dependecy_graph is returned
 """
 
 from configx.core.setting_tree import SettingTree
 from configx.services.evaluation.api import pre_evaluate_tree
-from configx.types import NOT_EVALUATED, LazyValue, RawProcessor
+from configx.types import NOT_EVALUATED, LazyValue
 
 
 def test_has_dependencies():
