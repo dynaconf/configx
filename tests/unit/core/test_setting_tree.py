@@ -83,16 +83,16 @@ def test_traverse_tree_keys():
     tree_traversal = [tree_path for tree_path in setting_tree.keys()]
     assert len(tree_traversal) == 10
     assert tree_traversal == [
-        ("root", "dict_type"),
-        ("root", "dict_type", "foo"),
-        ("root", "dict_type", "spam"),
-        ("root", "dict_type", "spam", 0),
-        ("root", "dict_type", "spam", 1),
-        ("root", "dict_type", "spam", 2),
-        ("root", "list_type"),
-        ("root", "list_type", 0),
-        ("root", "list_type", 1),
-        ("root", "list_type", 2),
+        ("dict_type",),
+        ("dict_type", "foo"),
+        ("dict_type", "spam"),
+        ("dict_type", "spam", 0),
+        ("dict_type", "spam", 1),
+        ("dict_type", "spam", 2),
+        ("list_type",),
+        ("list_type", 0),
+        ("list_type", 1),
+        ("list_type", 2),
     ]
 
 
@@ -108,14 +108,14 @@ def test_traverse_tree_items():
     ]
     assert len(tree_traversal) == 10
     assert tree_traversal == [
-        (("root", "dict_type"), {}),
-        (("root", "dict_type", "foo"), "bar"),
-        (("root", "dict_type", "spam"), []),
-        (("root", "dict_type", "spam", 0), "egg1"),
-        (("root", "dict_type", "spam", 1), "egg2"),
-        (("root", "dict_type", "spam", 2), "egg3"),
-        (("root", "list_type"), []),
-        (("root", "list_type", 0), "a"),
-        (("root", "list_type", 1), True),
-        (("root", "list_type", 2), 123),
+        (("dict_type",), {}),
+        (("dict_type", "foo"), "bar"),
+        (("dict_type", "spam"), []),
+        (("dict_type", "spam", 0), "egg1"),
+        (("dict_type", "spam", 1), "egg2"),
+        (("dict_type", "spam", 2), "egg3"),
+        (("list_type",), []),
+        (("list_type", 0), "a"),
+        (("list_type", 1), True),
+        (("list_type", 2), 123),
     ]

@@ -44,7 +44,7 @@ from configx.services.evaluation.utils import (
     _apply_lazy_processors,
     _parse_raw_value_tokens,
 )
-from configx.types import DependencyEdge, LazyValue
+from configx.types import DependencyEdge, LazyValue, TreePath
 
 if TYPE_CHECKING:
     from configx.core.setting_tree import Node, SettingTree
@@ -70,14 +70,15 @@ def evaluate_tree_dependencies(
         raise
 
     for path, dependencies in topological_order:
-        node = setting_tree.get_node(path)
-        context = build_context_from_tree(setting_tree, dependencies)
+        if dependencies:
+            node = setting_tree.get_node(path)
+            context = build_context_from_tree(setting_tree, dependencies)
 
-        # should be pre-evaluated
-        assert isinstance(node.element._raw_value, LazyValue)
-        node.element.real_value = _apply_lazy_processors(
-            lazy_value=node.element._raw_value, context=context
-        )
+            # should be pre-evaluated
+            assert isinstance(node.element._raw_value, LazyValue)
+            node.element.real_value = _apply_lazy_processors(
+                lazy_value=node.element._raw_value, context=context
+            )
     return setting_tree
 
 
@@ -133,7 +134,8 @@ def pre_evaluate_node(node: Node) -> Sequence[DependencyEdge]:
         node.element.real_value = _apply_lazy_processors(lazy_value)
     except MissingContextValue as err:
         dependency_edges = [
-            DependencyEdge(node.path, ("root", *dep[1:])) for dep in err.dependencies
+            DependencyEdge(dependent=node.path, depends_on=TreePath(dep))
+            for dep in err.dependencies
         ]
         # could retry to evalute it here if a setting_tree or some kind of
         # global context is passed

@@ -65,7 +65,7 @@ class Node:
         Get immediate child of self (not recursive)
         """
         path = assure_tree_path(child)
-        result = [n for n in self.children if n.path == path]
+        result = [n for n in self.children if n.rooted_path == path]
         if result:
             return result[0]
 
@@ -73,7 +73,7 @@ class Node:
             raise NodeNotFound(f"Child is not found in node: {self}")
         return default
 
-    def add_child(self, child: Node, overwrite=True):
+    def add_child(self, child: Node, override=False):
         """
         Adds child to node.
         """
@@ -108,7 +108,12 @@ class Node:
 
     @property
     def path(self):
-        """Get Node's TreePath"""
+        """Get Node's rootless TreePath"""
+        return self.element.path[1:]
+
+    @property
+    def rooted_path(self):
+        """Get Node's rooted TreePath"""
         return self.element.path
 
     @property
@@ -141,7 +146,7 @@ class SettingTree:
         # TODO: setup cache system (can be posponed)
         self.root = Node(Setting(("root",), ""), None)  # type: ignore
         self.root.parent = self.root
-        self._internal_cache: TreeMap = {self.root.path: self.root}
+        self._internal_cache: TreeMap = {self.root.rooted_path: self.root}
 
         self.env = env
         self.src = src
@@ -168,7 +173,7 @@ class SettingTree:
         """
         # get parent where nodes will be appended
         basenode = basenode or self.root
-        rooted_path = basenode.path
+        rooted_path = basenode.rooted_path
 
         # use py_data [key, values] as Setting(path, raw_value)
         for k, v in py_data.items():
@@ -186,11 +191,10 @@ class SettingTree:
         if isinstance(raw_value, SimpleTypes):
             node = Node(Setting(path, raw_value), parent)
             parent.add_child(node)
-            self._internal_cache[node.path] = node
+            self._internal_cache[node.rooted_path] = node
             return node
 
         # general case: non-leaf node
-        # TODO: use list and dict sentinels {DICT, LIST} -> type(LIST)=list
         if isinstance(raw_value, list):
             non_leaf_sentinel = []
             non_leaf_iterator = lambda x: enumerate(x)
@@ -203,7 +207,7 @@ class SettingTree:
         setting = Setting(path, non_leaf_sentinel)
         node = Node(setting, parent)
         parent.add_child(node)
-        self._internal_cache[node.path] = node
+        self._internal_cache[node.rooted_path] = node
 
         for k, v in non_leaf_iterator(raw_value):
             new_path = path + (k,)
@@ -233,7 +237,7 @@ class SettingTree:
         if len(rootless_path) == 0:
             raise EmptyTreePath
 
-        rooted_path = self.root.path + rootless_path
+        rooted_path = self.root.rooted_path + rootless_path
         try:
             return self._internal_cache[rooted_path]
         except KeyError:

@@ -4,11 +4,14 @@ from typing import Any, Sequence
 
 from configx.exceptions import TokenError
 from configx.types import MISSING, ContextObject, LazyValue, TreePath
+from configx.utils.tree_utils import str_to_tree_path
 
 
-def get_template_variables(string: str, as_tree_path: bool = False) -> Sequence[str]:
+def get_template_variables(
+    string: str, ignore_first_node: bool = False
+) -> Sequence[TreePath]:
     """
-    Get substitution dependencies and strips whitespace.
+    Get substitution dependencies as TreePaths.
     If not present returns []
 
     Examples:
@@ -17,8 +20,17 @@ def get_template_variables(string: str, as_tree_path: bool = False) -> Sequence[
         ["some.variable", "another.variable"]
     """
     pattern = r"\{([^{}]*)\}"
-    result = re.findall(pattern, string)
-    return [v.strip() for v in result]
+    paths = re.findall(pattern, string)
+    result = []
+    for path_str in paths:
+        path = str_to_tree_path(path_str.strip())
+        if ignore_first_node:
+            if not len(path) > 1:
+                continue
+            result.append(path[1:])
+        else:
+            result.append(path)
+    return result
 
 
 def _parse_raw_value_tokens(raw_value: str) -> tuple[tuple[str, ...], str]:

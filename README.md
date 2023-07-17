@@ -11,5 +11,6 @@
 
 Short term todos:
 
-- test evaluate_tree_dependencies. This dependeds on TreePath normalization.
-- normalize TreePath references (mainly, in DependecyGraph and SettingTree)
+- [ ] test evaluate_tree_dependencies
+  - [x] normalize TreePath rootless references
+  - [ ] resolve context-processors (pass SettingTree? Guess so)

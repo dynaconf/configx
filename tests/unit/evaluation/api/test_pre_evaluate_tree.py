@@ -24,8 +24,8 @@ def test_has_dependencies():
 
     assert len(dependency_graph_list) == 2
     assert dependency_graph_list == [
-        (("root", "a"), []),
-        (("root", "b", "foo"), [("root", "a")]),
+        (("a",), []),
+        (("b", "foo"), [("a",)]),
     ]
 
     assert setting_tree.get_node(("a",)).element.real_value == "A"

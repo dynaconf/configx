@@ -10,10 +10,12 @@ from typing import Any
 import jinja2
 
 from configx.exceptions import MissingContextValue
-from configx.services.evaluation.utils import (dict_to_simple_namespace,
-                                               dot_str_to_dict_str,
-                                               get_template_variables)
-from configx.types import MISSING, ContextObject
+from configx.services.evaluation.utils import (
+    dict_to_simple_namespace,
+    dot_str_to_dict_str,
+    get_template_variables,
+)
+from configx.types import MISSING, ContextObject, TreePath
 from configx.utils.tree_utils import str_to_tree_path
 
 
@@ -24,27 +26,21 @@ def bypass_processor(raw_string: str, context: dict = MISSING) -> Any:
 
 def jinja_formatter(raw_string: str, context: dict):
     env = jinja2.Environment(undefined=jinja2.StrictUndefined)
-    dependencies = get_template_variables(raw_string)
     try:
         return env.from_string(raw_string).render(context)
     except jinja2.exceptions.UndefinedError:
         msg = f"value: {repr(raw_string)} is not available in the context yet."
-        dependencies = [str_to_tree_path(s) for s in dependencies]
+        dependencies = get_template_variables(raw_string, ignore_first_node=True)
         raise MissingContextValue(dependencies, msg)
 
 
 def format_formatter(raw_string: str, context: dict):
-    dependencies = get_template_variables(raw_string)
     try:
-        # Alternative:
-        #   - Could transform {this.foo.bar} to {this['foo']['bar']}
-        # dict_string = dot_str_to_dict_str(raw_string)
-        # return dict_string.format(this=context)
         object_context = dict_to_simple_namespace(context)
         return raw_string.format(this=object_context)
     except (AttributeError, KeyError):
         msg = f"value: {raw_string!r} is not available in the context"
-        dependencies = [str_to_tree_path(s) for s in dependencies]
+        dependencies = get_template_variables(raw_string, ignore_first_node=True)
         raise MissingContextValue(dependencies, msg)
 
 
