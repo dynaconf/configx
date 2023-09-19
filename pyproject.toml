@@ -23,8 +23,8 @@ dynaconf = {git="https://github.com/dynaconf/dynaconf.git", branch="master"}
 addopts = ["--import-mode=importlib"]
 pythonpath = "src"
 markers = [
-    "utils: internal utilities/implementation details",
-    "module_api: high-level internal api (services and core)",
+    "proto-e2e: Prototype end-to-end tests",
+    "proto-function: Prototype functional tests",
 ]
 
 [tool.mypy]
