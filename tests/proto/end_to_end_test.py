@@ -1,9 +1,25 @@
 """End-to-end testing of program flow"""
 from __future__ import annotations
 
-from core import (DictElement, ListElement, Node, ValueElement,
-                  evaluate_component_tree, ingest_data, merge_tree,
-                  reconcile_data, split_mixed_tree)
+from proto.core import (DictElement, ListElement, Node, ValueElement,
+                        evaluate_component_tree, ingest_data, merge_tree,
+                        reconcile_data, split_mixed_tree)
+import pytest
+
+
+@pytest.fixture
+def data_a():
+    ...
+
+
+@pytest.fixture
+def expected():
+    ...
+
+
+@pytest.fixture
+def use_patch():
+    ...
 
 
 def test_ingest_merge_reconcile(data_a, expected, use_patch):

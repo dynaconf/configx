@@ -1,4 +1,4 @@
-from .merge import Node, diff_node, treefy
+from proto.core import Node, diff_node, treefy
 
 
 def test_node_equality():

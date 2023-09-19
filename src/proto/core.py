@@ -70,6 +70,14 @@ def patch_data(patches: Sequence[DataPatch], data: dict) -> DataPatch:
     """Apply NodePatches to tree and return DataPatch."""
     raise NotImplementedError()
 
+# Auxiliary functions
+
+
+def diff_node():
+    ...
+
+def treefy():
+    ...
 
 # Auxiliary classes
 
@@ -80,7 +88,6 @@ class TreePatch:
 
 class DataPatch:
     """Patch to be applied into a dict-data."""
-
 
 # Dependency Injection
 
@@ -140,7 +147,8 @@ class Node:
     # hashable
     node_type: NodeType = field(compare=True, hash=True)
     key: str = field(compare=True, hash=True)
-    value: Optional[NonContainerType] = field(compare=True, default=None, hash=True)
+    value: Optional[NonContainerType] = field(
+        compare=True, default=None, hash=True)
 
     # non-hashable
     children: tuple[Node, ...] = field(
