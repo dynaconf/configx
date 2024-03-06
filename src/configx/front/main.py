@@ -27,50 +27,27 @@ class BaseSchema:
         ...
 
 
-class BaseDict(dict):
-    def __init__(self, *args, **kwargs):
-        self._core = kwargs.pop("__dynaconf_core__", None)
-        super().__init__(*args, **kwargs)
-
-    def refresh(self):
-        new_data = BaseDict(self._core._raw_settings)
-        self.update(new_data)
-
-    def set(self, key: str, value):
-        keypath = key.split(".")
-        patch = {}
-        for i in range(len(keypath) - 1):
-            cur = keypath[i]
-            next = keypath[i + 1]
-            patch[cur] = {next: value}
-        self._core._raw_settings.update(patch)
-        self.refresh()
-
-
 # https://mypy.readthedocs.io/en/stable/generics.html
 T = t.TypeVar("T")
 
 
-class Core(t.Generic[T]):
+class ConfigManager(t.Generic[T]):
     def __init__(self, schema: type[T], initial_data: t.Optional[dict] = None):
         self.schema = schema
         self._raw_settings = initial_data or {}
 
-    def dict_settings(self) -> BaseDict:
-        return BaseDict(self._raw_settings, __dynaconf_core__=self)
-
-    def schema_settings(self) -> T:
-        schema = self.schema(**self._raw_settings)
-        setattr(schema, "__dynaconf_core__", self)
-        return schema
+    def settings(self) -> T:
+        schema_config = self.schema(**self._raw_settings)
+        setattr(schema_config, "__dynaconf_core__", self)
+        self._schema_config = schema_config
+        return schema_config
 
 
 # Sample Usage
 if __name__ == "__main__":
 
     def main():
-        schema_settings_test()
-        # dict_settings_test()
+        case_initial()
 
     def get_initial_data():
         return {
@@ -92,14 +69,17 @@ if __name__ == "__main__":
         dicty: dict
         obj: SomeObj
 
-    def schema_settings_test():
+    def case_initial():
         # core = Core[MySchema](MySchema)
-        core = Core(schema=MySchema, initial_data=get_initial_data())
-        settings = core.schema_settings()
+        manager = ConfigManager(schema=MySchema, initial_data=get_initial_data())
+        settings = manager.settings()
         print(settings)
 
         # simulate internal state update
-        core._raw_settings["foo"] = "new"
+        manager._raw_settings["foo"] = "new"
+        # TODO: create another file for those different "fronend" versions
+        # manager.refresh(settings) # dumb disposable settings
+        # manager.refresh() # global settings kept inside
 
         settings.refresh()
         print(settings)
@@ -107,26 +87,5 @@ if __name__ == "__main__":
         # settings.clear()
         # settings.refresh()
         print(asdict(settings))
-
-    def dict_settings_test():
-        # core = Core[MySchema](MySchema)
-        core = Core(schema=MySchema)
-
-        settings = core.dict_settings()
-        print(settings)
-
-        # simulate internal state update
-        core._raw_settings["foo"] = "new"
-        settings.refresh()
-        print(settings)
-
-        # set via update
-        settings.set("newkey", 1234)
-        print(settings)
-
-        # set via update with dotted path
-        # settings.core_set("dicty.key.spam", "new_value") # TODO: doest work
-        settings.set("dicty.key", "new_value")
-        print(settings)
 
     main()
